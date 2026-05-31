@@ -39,6 +39,9 @@ const SUBJECTS = [
   { label: "Science", slug: "science" },
   { label: "English Language", slug: "english-language" },
   { label: "Computing", slug: "computing" },
+  { label: "Social Studies", slug: "social-studies" },
+  { label: "RME", slug: "rme" },
+  { label: "Career Technology", slug: "career-technology" },
 ];
 
 const GRADES = ["B7", "B8", "B9"];

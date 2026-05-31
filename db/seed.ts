@@ -230,6 +230,112 @@ const CURRICULUM = [
       },
     ],
   },
+  {
+    subject: { name: "Social Studies", slug: "social-studies" },
+    strands: [
+      {
+        name: "The Individual & Society",
+        subStrands: [
+          {
+            name: "Identity & Culture",
+            indicators: [
+              { code: "B7.1.1.1-SS", text: "Describe the cultural practices and values of communities in Ghana", bloomsLevel: "Understand", grade: "B7" },
+              { code: "B7.1.2.1-SS", text: "Explain how individuals contribute to their communities and society", bloomsLevel: "Understand", grade: "B7" },
+              { code: "B8.1.1.1-SS", text: "Analyse the relationship between culture, identity and national development", bloomsLevel: "Analyse", grade: "B8" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Governance & Citizenship",
+        subStrands: [
+          {
+            name: "Democratic Governance",
+            indicators: [
+              { code: "B8.2.1.1-SS", text: "Describe the structure and functions of Ghana's government at national and local levels", bloomsLevel: "Understand", grade: "B8" },
+              { code: "B9.2.1.1-SS", text: "Evaluate the rights and responsibilities of citizens in a democratic society", bloomsLevel: "Evaluate", grade: "B9" },
+              { code: "B9.2.2.1-SS", text: "Analyse the role of civil society and media in promoting good governance in Ghana", bloomsLevel: "Analyse", grade: "B9" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Environment & Sustainability",
+        subStrands: [
+          {
+            name: "Natural Resources",
+            indicators: [
+              { code: "B7.3.1.1-SS", text: "Identify Ghana's major natural resources and explain their importance to the economy", bloomsLevel: "Understand", grade: "B7" },
+              { code: "B8.3.1.1-SS", text: "Explain the causes and effects of environmental degradation in Ghana", bloomsLevel: "Understand", grade: "B8" },
+              { code: "B9.3.1.1-SS", text: "Propose solutions to environmental challenges facing Ghanaian communities", bloomsLevel: "Create", grade: "B9" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    subject: { name: "RME", slug: "rme" },
+    strands: [
+      {
+        name: "Religious Beliefs & Practices",
+        subStrands: [
+          {
+            name: "Major Religions in Ghana",
+            indicators: [
+              { code: "B7.1.1.1-RME", text: "Describe the beliefs, practices and festivals of Christianity, Islam and African Traditional Religion", bloomsLevel: "Understand", grade: "B7" },
+              { code: "B7.1.2.1-RME", text: "Explain how religion influences the daily lives and values of Ghanaians", bloomsLevel: "Understand", grade: "B7" },
+              { code: "B8.1.1.1-RME", text: "Compare the moral teachings of the major religions in Ghana", bloomsLevel: "Analyse", grade: "B8" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Moral Values & Character",
+        subStrands: [
+          {
+            name: "Virtues & Morality",
+            indicators: [
+              { code: "B7.2.1.1-RME", text: "Identify and demonstrate key moral values such as honesty, respect and responsibility", bloomsLevel: "Apply", grade: "B7" },
+              { code: "B8.2.1.1-RME", text: "Analyse moral dilemmas and apply ethical reasoning to real-life situations", bloomsLevel: "Analyse", grade: "B8" },
+              { code: "B9.2.1.1-RME", text: "Evaluate the impact of moral and immoral behaviour on individuals, families and communities", bloomsLevel: "Evaluate", grade: "B9" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    subject: { name: "Career Technology", slug: "career-technology" },
+    strands: [
+      {
+        name: "Exploratory Skills",
+        subStrands: [
+          {
+            name: "Career Awareness",
+            indicators: [
+              { code: "B7.1.1.1-CT", text: "Identify different career pathways and the skills required for various occupations", bloomsLevel: "Remember", grade: "B7" },
+              { code: "B7.1.2.1-CT", text: "Explain the relationship between education, skills and career opportunities in Ghana", bloomsLevel: "Understand", grade: "B7" },
+              { code: "B8.1.1.1-CT", text: "Demonstrate basic entrepreneurial skills through a simple business idea or project", bloomsLevel: "Apply", grade: "B8" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Technical & Vocational Skills",
+        subStrands: [
+          {
+            name: "Practical Skills",
+            indicators: [
+              { code: "B8.2.1.1-CT", text: "Apply basic technical skills in areas such as woodwork, metalwork, or textiles", bloomsLevel: "Apply", grade: "B8" },
+              { code: "B9.2.1.1-CT", text: "Design and produce a simple functional item using appropriate tools and materials", bloomsLevel: "Create", grade: "B9" },
+              { code: "B9.2.2.1-CT", text: "Evaluate the quality and functionality of a completed technical project against set criteria", bloomsLevel: "Evaluate", grade: "B9" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 async function main() {
