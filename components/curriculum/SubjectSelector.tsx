@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface Indicator {
@@ -60,27 +60,35 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
   const [selectedIndicatorCode, setSelectedIndicatorCode] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const fetchCurriculum = useCallback(async (sub: string, grd: string) => {
-    setLoading(true);
-    setStrands([]);
-    setSelectedStrand("");
-    setSelectedIndicatorCode("");
-    try {
-      const res = await fetch(`/api/curriculum?subject=${sub}&grade=${grd}`);
-      const data = await res.json();
-      if (data.success && data.data.strands) {
-        setStrands(data.data.strands);
-      }
-    } catch (err) {
-      console.error("Failed to fetch curriculum:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchCurriculum(subject, grade);
-  }, [subject, grade, fetchCurriculum]);
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setStrands([]);
+      setSelectedStrand("");
+      setSelectedIndicatorCode("");
+      try {
+        const res = await fetch(
+          `/api/curriculum?subject=${subject}&grade=${grade}`
+        );
+        const data = await res.json();
+        if (!cancelled && data.success && data.data.strands) {
+          setStrands(data.data.strands);
+        }
+      } catch (err) {
+        console.error("Failed to fetch curriculum:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [subject, grade]);
 
   const currentStrand = strands.find((s) => s.name === selectedStrand);
   const allIndicators = currentStrand
@@ -91,7 +99,8 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
 
   const handleIndicatorSelect = (ind: Indicator & { subStrand: string }) => {
     setSelectedIndicatorCode(ind.code);
-    const subjectLabel = SUBJECTS.find((s) => s.slug === subject)?.label || subject;
+    const subjectLabel =
+      SUBJECTS.find((s) => s.slug === subject)?.label || subject;
     onSelect({
       code: ind.code,
       text: ind.text,
@@ -113,6 +122,7 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
           </label>
           <select
             value={subject}
+            title="Subject"
             onChange={(e) => setSubject(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
           >
@@ -129,6 +139,7 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
           </label>
           <select
             value={grade}
+            title="Grade"
             onChange={(e) => setGrade(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
           >
@@ -207,7 +218,8 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
                   </p>
                   <span
                     className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                      BLOOMS_COLORS[ind.bloomsLevel] || "bg-gray-100 text-gray-600"
+                      BLOOMS_COLORS[ind.bloomsLevel] ||
+                      "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {ind.bloomsLevel}

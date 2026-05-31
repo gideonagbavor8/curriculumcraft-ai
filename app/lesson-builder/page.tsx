@@ -145,6 +145,7 @@ export default function LessonBuilderPage() {
                   <select
                     value={duration}
                     onChange={(e) => setDuration(e.target.value)}
+                    title="Lesson duration"
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                   >
                     {DURATIONS.map((d) => (
@@ -161,6 +162,7 @@ export default function LessonBuilderPage() {
                   <select
                     value={classSize}
                     onChange={(e) => setClassSize(e.target.value)}
+                    title="Class size"
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
                   >
                     {CLASS_SIZES.map((c) => (
