@@ -36,9 +36,9 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "4", label: "Subjects" },
+  { value: "7", label: "Subjects" },
   { value: "3", label: "Grade levels" },
-  { value: "50+", label: "Indicators" },
+  { value: "80+", label: "Indicators" },
   { value: "3", label: "AI-powered views" },
 ];
 
