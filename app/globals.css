@@ -28,9 +28,66 @@
     animation: fadeUp 0.3s ease forwards;
   }
 
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.15s ease-out forwards;
+  }
+
+  .animate-fadeIn-1 {
+    animation: fadeIn 0.15s ease-out forwards 0.1s;
+  }
+
+  .animate-fadeIn-2 {
+    animation: fadeIn 0.15s ease-out forwards 0.2s;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(255, 255, 255, 0) 40%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+  }
+
   @keyframes pulse-skeleton {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+  }
+
+  .prompt-item-0 {
+    transform: rotate(-3deg) scaleX(1);
+  }
+
+  .prompt-item-1 {
+    transform: rotate(-1deg) scaleX(1.02);
+  }
+
+  .prompt-item-2 {
+    transform: rotate(1deg) scaleX(1.04);
+  }
+
+  .prompt-item-3 {
+    transform: rotate(3deg) scaleX(1.06);
   }
 
   .animate-pulse {

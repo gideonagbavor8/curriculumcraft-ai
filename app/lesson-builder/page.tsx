@@ -5,6 +5,8 @@ import { Loader2, Save, Printer, CheckCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
+import VisualPromptCard from "@/components/lesson/VisualPromptCard";
+import CitationBanner from "@/components/lesson/CitationBanner";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
 
 interface SelectedIndicator {
@@ -43,15 +45,13 @@ function LoadingSkeleton() {
     <div className="space-y-4 animate-pulse">
       {[1, 2, 3].map((i) => (
         <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+          <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border-b border-gray-100 dark:border-gray-700">
+            <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-150 dark:from-gray-700 dark:to-gray-600 rounded w-32" />
           </div>
           <div className="p-5 space-y-3">
-            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-full" />
-            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-5/6" />
-            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-4/6" />
-            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-full" />
-            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-3/4" />
+            {[1, 2, 3, 4, 5].map((line) => (
+              <div key={line} className="h-3 bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded" style={{ width: `${100 - line * 15}%` }} />
+            ))}
           </div>
         </div>
       ))}
@@ -167,15 +167,15 @@ export default function LessonBuilderPage() {
   return (
     <>
       <style>{`@media print { nav, .no-print { display: none !important; } body { background: white !important; } }`}</style>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-        <div className="bg-gradient-to-r from-green-800 to-green-600 px-6 py-8 no-print">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
+        <div className="bg-gradient-to-r from-green-800 via-green-700 to-green-600 dark:from-green-900 dark:via-green-800 dark:to-green-700 px-6 py-8 no-print shadow-md">
           <div className="mx-auto max-w-4xl">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full">NaCCA SBC</span>
+            <div className="flex items-center gap-2 mb-2 animate-fadeIn">
+              <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-sm">NaCCA SBC</span>
               <span className="text-xs text-white/70">Ghana JHS</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">Lesson & Material Builder</h1>
-            <p className="text-green-100 text-sm mt-1">Generate culturally relevant lesson materials aligned to NaCCA standards</p>
+            <h1 className="text-2xl font-bold text-white mb-1 animate-fadeIn-1">Lesson & Material Builder</h1>
+            <p className="text-green-100 text-sm animate-fadeIn-2">Generate culturally relevant lesson materials aligned to NaCCA standards</p>
           </div>
         </div>
 
@@ -197,10 +197,10 @@ export default function LessonBuilderPage() {
                       <button
                         key={level.value}
                         onClick={() => setDifficultyLevel(level.value)}
-                        className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-all ${
+                        className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-all duration-200 transform hover:scale-105 ${
                           difficultyLevel === level.value
-                            ? "bg-green-700 border-green-700 text-white"
-                            : `bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 ${level.color} hover:border-green-300`
+                            ? "bg-green-700 border-green-700 text-white shadow-lg shadow-green-500/30 scale-105"
+                            : `bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-600 ${level.color} hover:border-green-300 dark:hover:border-green-600 hover:shadow-md`
                         }`}
                       >
                         <span className="text-xs font-semibold">{level.label}</span>
@@ -231,7 +231,7 @@ export default function LessonBuilderPage() {
                 </div>
 
                 <button onClick={handleGenerate} disabled={loading}
-                  className="w-full py-3 rounded-xl bg-green-700 hover:bg-green-800 disabled:bg-green-300 text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 disabled:from-green-300 disabled:to-green-200 text-white font-semibold text-sm transition-all shadow-md hover:shadow-lg hover:shadow-green-500/30 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95 duration-150">
                   {loading
                     ? <><Loader2 size={16} className="animate-spin" />Generating Lesson Materials...</>
                     : "✦ Generate Lesson Materials"}
@@ -250,6 +250,8 @@ export default function LessonBuilderPage() {
 
           {result && !loading && (
             <div ref={printRef} className="space-y-4">
+              <CitationBanner citations={result.citations} indicatorCode={result.indicatorCode} />
+
               <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3 no-print">
                 <CheckCircle size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
                 <div className="flex-1">
@@ -275,9 +277,9 @@ export default function LessonBuilderPage() {
                 <hr className="mt-3 border-gray-300" />
               </div>
 
-              <SectionCard icon="📋" label="Teacher Notes" content={result.teacherNotes} accentColor="green" />
-              <SectionCard icon="🎨" label="Visual Content Prompts" content={result.visualPrompts} accentColor="amber" />
-              <SectionCard icon="📖" label={`Student Reading Material — ${language}`} content={result.studentReading} accentColor="blue" />
+              <SectionCard icon="📋" label="Teacher Notes" content={result.teacherNotes} accentColor="green" citations={result.citations} />
+              <VisualPromptCard content={result.visualPrompts} citations={result.citations} />
+              <SectionCard icon="📖" label={`Student Reading Material — ${language}`} content={result.studentReading} accentColor="blue" citations={result.citations} />
 
               <div className="grid grid-cols-3 gap-3 no-print">
                 <button onClick={handleSave} disabled={saving || saved}

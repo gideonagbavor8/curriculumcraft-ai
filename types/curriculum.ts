@@ -79,6 +79,13 @@ export interface GenerateRequest {
   difficultyLevel: DifficultyLevel;
 }
 
+export interface Citation {
+  id: string;
+  text: string;
+  source: string;
+  type: "foundry" | "curriculum";
+}
+
 export interface GenerateResponse {
   teacherNotes: string;
   visualPrompts: string;
@@ -88,6 +95,7 @@ export interface GenerateResponse {
   grade: string;
   strand: string;
   difficultyLevel: string;
+  citations?: Citation[];
 }
 
 export interface MCQOption {

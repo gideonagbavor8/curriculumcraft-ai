@@ -40,12 +40,12 @@ const SUBJECTS = [
 const GRADES = ["B7", "B8", "B9"];
 
 const BLOOMS_COLORS: Record<string, string> = {
-  Remember: "bg-gray-100 text-gray-600 border-gray-200",
-  Understand: "bg-blue-50 text-blue-700 border-blue-200",
-  Apply: "bg-green-50 text-green-700 border-green-200",
-  Analyse: "bg-amber-50 text-amber-700 border-amber-200",
-  Evaluate: "bg-purple-50 text-purple-700 border-purple-200",
-  Create: "bg-pink-50 text-pink-700 border-pink-200",
+  Remember: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600",
+  Understand: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700/50",
+  Apply: "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700/50",
+  Analyse: "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/50",
+  Evaluate: "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700/50",
+  Create: "bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-700/50",
 };
 
 function IndicatorRow({
@@ -62,21 +62,21 @@ function IndicatorRow({
   subStrand: string;
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 bg-white hover:border-green-200 hover:bg-green-50/30 transition-all group">
-      <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 text-gray-600 flex-shrink-0 mt-0.5 group-hover:bg-green-700 group-hover:text-white transition-colors">
+    <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-200 dark:hover:border-green-700 hover:bg-green-50/30 dark:hover:bg-green-900/20 transition-all group">
+      <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex-shrink-0 mt-0.5 group-hover:bg-green-700 dark:group-hover:bg-green-600 group-hover:text-white transition-colors">
         {indicator.code}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-700 leading-relaxed">{indicator.text}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{indicator.text}</p>
         <div className="flex items-center gap-2 mt-1.5">
           <span
             className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
-              BLOOMS_COLORS[indicator.bloomsLevel] || "bg-gray-100 text-gray-600 border-gray-200"
+              BLOOMS_COLORS[indicator.bloomsLevel] || "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600"
             }`}
           >
             {indicator.bloomsLevel}
           </span>
-          <span className="text-[10px] text-gray-400">{indicator.grade}</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500">{indicator.grade}</span>
         </div>
       </div>
       <button
@@ -103,14 +103,14 @@ function SubStrandSection({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="ml-4 border-l-2 border-gray-100 pl-4">
+    <div className="ml-4 border-l-2 border-gray-100 dark:border-gray-700 pl-4">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 py-2 text-sm font-medium text-gray-600 hover:text-green-800 transition-colors w-full text-left"
+        className="flex items-center gap-2 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-green-800 dark:hover:text-green-400 transition-colors w-full text-left"
       >
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         {subStrand.name}
-        <span className="ml-auto text-[10px] text-gray-400 font-normal">
+        <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500 font-normal">
           {subStrand.indicators.length} indicator{subStrand.indicators.length !== 1 ? "s" : ""}
         </span>
       </button>
@@ -148,21 +148,21 @@ function StrandSection({
   );
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-3 w-full px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="flex items-center gap-3 w-full px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-100 text-green-700 flex-shrink-0">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 flex-shrink-0">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </div>
-        <span className="font-semibold text-gray-800 text-sm">{strand.name}</span>
-        <span className="ml-auto text-xs text-gray-400">
+        <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{strand.name}</span>
+        <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
           {totalIndicators} indicator{totalIndicators !== 1 ? "s" : ""}
         </span>
       </button>
       {open && (
-        <div className="px-4 pb-4 space-y-1 border-t border-gray-100 pt-3">
+        <div className="px-4 pb-4 space-y-1 border-t border-gray-100 dark:border-gray-700 pt-3">
           {strand.subStrands.map((ss) => (
             <SubStrandSection
               key={ss.name}
@@ -253,12 +253,12 @@ export default function DashboardPage() {
   const subjectLabel = SUBJECTS.find((s) => s.slug === subject)?.label || subject;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-800 to-green-600 px-6 py-8">
+      <div className="bg-gradient-to-r from-green-800 via-green-700 to-green-600 dark:from-green-900 dark:via-green-800 dark:to-green-700 px-6 py-8 shadow-md">
         <div className="mx-auto max-w-4xl">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full">
+            <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-sm">
               NaCCA SBC
             </span>
             <span className="text-xs text-white/70">Ghana JHS</span>
@@ -272,17 +272,17 @@ export default function DashboardPage() {
 
       <div className="mx-auto max-w-4xl px-4 py-6 space-y-5">
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5">
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                 Subject
               </label>
               <select
                 value={subject}
                 title="Subject"
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
               >
                 {SUBJECTS.map((s) => (
                   <option key={s.slug} value={s.slug}>
@@ -292,14 +292,14 @@ export default function DashboardPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                 Grade
               </label>
               <select
                 value={grade}
                 title="Grade"
                 onChange={(e) => setGrade(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
               >
                 {GRADES.map((g) => (
                   <option key={g} value={g}>
@@ -312,21 +312,21 @@ export default function DashboardPage() {
 
           {/* Search */}
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="Search indicators..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-4 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-9 pr-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
             />
           </div>
 
           {/* Stats */}
           {!loading && (
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
-              <span className="text-xs text-gray-500">
-                <span className="font-semibold text-gray-800">{subjectLabel}</span> · Grade {grade}
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="font-semibold text-gray-800 dark:text-gray-200">{subjectLabel}</span> · Grade {grade}
               </span>
               <span className="text-xs text-gray-500">
                 <span className="font-semibold text-gray-800">{strands.length}</span> strands

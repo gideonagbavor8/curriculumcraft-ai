@@ -1,22 +1,48 @@
 import React from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import CitationTooltip from "./CitationTooltip";
+import type { Citation } from "@/types/curriculum";
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
+  citations?: Citation[];
 }
 
-export function parseInlineContent(text: string): React.ReactNode[] {
+export function parseInlineContent(text: string, citations?: Citation[]): React.ReactNode[] {
   const tokens: React.ReactNode[] = [];
-  // Regex to match: inline math ($...$), bold (**...**), or italic (*...*)
-  const regex = /(\$\$[^\$]+\$\$|\$[^\$]+\$|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  // Regex to match: NaCCA codes (e.g. B7.1.2.1), inline math ($...$), bold (**...**), or italic (*...*)
+  const regex = /([A-Z]\d+\.\d+\.\d+\.\d+|\$\$[^\$]+\$\$|\$[^\$]+\$|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   const parts = text.split(regex);
 
   parts.forEach((part, i) => {
     if (!part) return;
 
-    if (part.startsWith("$$") && part.endsWith("$$")) {
+    // Check if part is a NaCCA indicator code
+    const isNacca = /^[A-Z]\d+\.\d+\.\d+\.\d+$/.test(part);
+    if (isNacca) {
+      const citation = citations?.find(c => c.text.includes(part));
+      if (citation) {
+        tokens.push(
+          <CitationTooltip
+            key={i}
+            text={citation.text}
+            source={citation.source}
+          >
+            <span className="font-mono font-semibold text-amber-700 dark:text-amber-400">
+              {part}
+            </span>
+          </CitationTooltip>
+        );
+      } else {
+        tokens.push(
+          <span key={i} className="font-mono font-semibold text-amber-700 dark:text-amber-400">
+            {part}
+          </span>
+        );
+      }
+    } else if (part.startsWith("$$") && part.endsWith("$$")) {
       const math = part.slice(2, -2);
       try {
         const html = katex.renderToString(math, {
@@ -54,12 +80,12 @@ export function parseInlineContent(text: string): React.ReactNode[] {
       const boldText = part.slice(2, -2);
       tokens.push(
         <strong key={i} className="font-semibold text-gray-900 dark:text-white">
-          {parseInlineContent(boldText)}
+          {parseInlineContent(boldText, citations)}
         </strong>
       );
     } else if (part.startsWith("*") && part.endsWith("*")) {
       const italicText = part.slice(1, -1);
-      tokens.push(<em key={i}>{parseInlineContent(italicText)}</em>);
+      tokens.push(<em key={i}>{parseInlineContent(italicText, citations)}</em>);
     } else {
       tokens.push(<React.Fragment key={i}>{part}</React.Fragment>);
     }
@@ -68,7 +94,7 @@ export function parseInlineContent(text: string): React.ReactNode[] {
   return tokens.length === 0 ? [text] : tokens;
 }
 
-function processNormalText(text: string, baseKey: number): React.ReactNode[] {
+function processNormalText(text: string, baseKey: number, citations?: Citation[]): React.ReactNode[] {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
 
@@ -85,9 +111,9 @@ function processNormalText(text: string, baseKey: number): React.ReactNode[] {
       elements.push(
         <p
           key={key}
-          className="text-[11px] font-bold uppercase tracking-widest text-green-700 mt-4 mb-1"
+          className="text-[11px] font-bold uppercase tracking-widest text-green-700 dark:text-green-400 mt-4 mb-1"
         >
-          {parseInlineContent(h3[1])}
+          {parseInlineContent(h3[1], citations)}
         </p>
       );
     } else if (h2) {
@@ -96,7 +122,7 @@ function processNormalText(text: string, baseKey: number): React.ReactNode[] {
           key={key}
           className="text-sm font-bold text-gray-900 dark:text-white mt-4 mb-1"
         >
-          {parseInlineContent(h2[1])}
+          {parseInlineContent(h2[1], citations)}
         </p>
       );
     } else if (h1) {
@@ -105,28 +131,28 @@ function processNormalText(text: string, baseKey: number): React.ReactNode[] {
           key={key}
           className="text-base font-bold text-gray-900 dark:text-white mt-4 mb-2"
         >
-          {parseInlineContent(h1[1])}
+          {parseInlineContent(h1[1], citations)}
         </p>
       );
     } else if (bullet) {
       elements.push(
         <div key={key} className="flex gap-2 my-0.5 pl-1">
-          <span className="text-green-500 font-bold mt-0.5 flex-shrink-0">
+          <span className="text-green-500 dark:text-green-400 font-bold mt-0.5 flex-shrink-0">
             •
           </span>
           <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {parseInlineContent(bullet[1])}
+            {parseInlineContent(bullet[1], citations)}
           </span>
         </div>
       );
     } else if (numbered) {
       elements.push(
         <div key={key} className="flex gap-2 my-0.5 pl-1">
-          <span className="text-green-700 font-semibold text-sm flex-shrink-0 min-w-[18px]">
+          <span className="text-green-700 dark:text-green-400 font-semibold text-sm flex-shrink-0 min-w-[18px]">
             {numbered[1]}.
           </span>
           <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {parseInlineContent(numbered[2])}
+            {parseInlineContent(numbered[2], citations)}
           </span>
         </div>
       );
@@ -138,7 +164,7 @@ function processNormalText(text: string, baseKey: number): React.ReactNode[] {
           key={key}
           className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed my-0.5"
         >
-          {parseInlineContent(line)}
+          {parseInlineContent(line, citations)}
         </p>
       );
     }
@@ -150,6 +176,7 @@ function processNormalText(text: string, baseKey: number): React.ReactNode[] {
 export default function MarkdownRenderer({
   content,
   className = "",
+  citations,
 }: MarkdownRendererProps) {
   if (!content) return null;
 
@@ -189,7 +216,7 @@ export default function MarkdownRenderer({
       }
     } else {
       // Normal markdown lines
-      const linesElements = processNormalText(part, baseKey);
+      const linesElements = processNormalText(part, baseKey, citations);
       elements.push(...linesElements);
       baseKey += part.split("\n").length;
     }
