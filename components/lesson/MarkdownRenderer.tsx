@@ -1,50 +1,79 @@
 import React from "react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 interface MarkdownRendererProps {
   content: string;
   className?: string;
 }
 
-function inlineFormat(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
-  let last = 0;
-  let match;
-  let key = 0;
+export function parseInlineContent(text: string): React.ReactNode[] {
+  const tokens: React.ReactNode[] = [];
+  // Regex to match: inline math ($...$), bold (**...**), or italic (*...*)
+  const regex = /(\$\$[^\$]+\$\$|\$[^\$]+\$|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const parts = text.split(regex);
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index));
-    }
-    if (match[2]) {
-      parts.push(
-        <strong key={key++} className="font-semibold text-gray-900">
-          {match[2]}
+  parts.forEach((part, i) => {
+    if (!part) return;
+
+    if (part.startsWith("$$") && part.endsWith("$$")) {
+      const math = part.slice(2, -2);
+      try {
+        const html = katex.renderToString(math, {
+          displayMode: true,
+          throwOnError: false,
+        });
+        tokens.push(
+          <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
+        );
+      } catch (e) {
+        tokens.push(
+          <span key={i} className="text-red-500 font-mono">
+            {part}
+          </span>
+        );
+      }
+    } else if (part.startsWith("$") && part.endsWith("$")) {
+      const math = part.slice(1, -1);
+      try {
+        const html = katex.renderToString(math, {
+          displayMode: false,
+          throwOnError: false,
+        });
+        tokens.push(
+          <span key={i} dangerouslySetInnerHTML={{ __html: html }} />
+        );
+      } catch (e) {
+        tokens.push(
+          <span key={i} className="text-red-500 font-mono">
+            {part}
+          </span>
+        );
+      }
+    } else if (part.startsWith("**") && part.endsWith("**")) {
+      const boldText = part.slice(2, -2);
+      tokens.push(
+        <strong key={i} className="font-semibold text-gray-900 dark:text-white">
+          {parseInlineContent(boldText)}
         </strong>
       );
-    } else if (match[3]) {
-      parts.push(<em key={key++}>{match[3]}</em>);
+    } else if (part.startsWith("*") && part.endsWith("*")) {
+      const italicText = part.slice(1, -1);
+      tokens.push(<em key={i}>{parseInlineContent(italicText)}</em>);
+    } else {
+      tokens.push(<React.Fragment key={i}>{part}</React.Fragment>);
     }
-    last = match.index + match[0].length;
-  }
+  });
 
-  if (last < text.length) {
-    parts.push(text.slice(last));
-  }
-
-  return parts.length === 0 ? text : parts;
+  return tokens.length === 0 ? [text] : tokens;
 }
 
-export default function MarkdownRenderer({
-  content,
-  className = "",
-}: MarkdownRendererProps) {
-  if (!content) return null;
-
-  const lines = content.split("\n");
+function processNormalText(text: string, baseKey: number): React.ReactNode[] {
+  const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
 
   lines.forEach((line, index) => {
+    const key = baseKey + index;
     const h3 = line.match(/^###\s+(.+)/);
     const h2 = line.match(/^##\s+(.+)/);
     const h1 = line.match(/^#\s+(.+)/);
@@ -55,58 +84,114 @@ export default function MarkdownRenderer({
     if (h3) {
       elements.push(
         <p
-          key={index}
+          key={key}
           className="text-[11px] font-bold uppercase tracking-widest text-green-700 mt-4 mb-1"
         >
-          {inlineFormat(h3[1])}
+          {parseInlineContent(h3[1])}
         </p>
       );
     } else if (h2) {
       elements.push(
         <p
-          key={index}
-          className="text-sm font-bold text-gray-900 mt-4 mb-1"
+          key={key}
+          className="text-sm font-bold text-gray-900 dark:text-white mt-4 mb-1"
         >
-          {inlineFormat(h2[1])}
+          {parseInlineContent(h2[1])}
         </p>
       );
     } else if (h1) {
       elements.push(
         <p
-          key={index}
-          className="text-base font-bold text-gray-900 mt-4 mb-2"
+          key={key}
+          className="text-base font-bold text-gray-900 dark:text-white mt-4 mb-2"
         >
-          {inlineFormat(h1[1])}
+          {parseInlineContent(h1[1])}
         </p>
       );
     } else if (bullet) {
       elements.push(
-        <div key={index} className="flex gap-2 my-0.5 pl-1">
-          <span className="text-green-500 font-bold mt-0.5 flex-shrink-0">•</span>
-          <span className="text-sm text-gray-700 leading-relaxed">
-            {inlineFormat(bullet[1])}
+        <div key={key} className="flex gap-2 my-0.5 pl-1">
+          <span className="text-green-500 font-bold mt-0.5 flex-shrink-0">
+            •
+          </span>
+          <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            {parseInlineContent(bullet[1])}
           </span>
         </div>
       );
     } else if (numbered) {
       elements.push(
-        <div key={index} className="flex gap-2 my-0.5 pl-1">
+        <div key={key} className="flex gap-2 my-0.5 pl-1">
           <span className="text-green-700 font-semibold text-sm flex-shrink-0 min-w-[18px]">
             {numbered[1]}.
           </span>
-          <span className="text-sm text-gray-700 leading-relaxed">
-            {inlineFormat(numbered[2])}
+          <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            {parseInlineContent(numbered[2])}
           </span>
         </div>
       );
     } else if (blank) {
-      elements.push(<div key={index} className="h-1.5" />);
+      elements.push(<div key={key} className="h-1.5" />);
     } else {
       elements.push(
-        <p key={index} className="text-sm text-gray-700 leading-relaxed my-0.5">
-          {inlineFormat(line)}
+        <p
+          key={key}
+          className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed my-0.5"
+        >
+          {parseInlineContent(line)}
         </p>
       );
+    }
+  });
+
+  return elements;
+}
+
+export default function MarkdownRenderer({
+  content,
+  className = "",
+}: MarkdownRendererProps) {
+  if (!content) return null;
+
+  const elements: React.ReactNode[] = [];
+  const blockMathRegex = /\$\$([\s\S]+?)\$\_/g;
+
+  // Let's implement block math extraction manually or using regex split to keep it clean.
+  // To avoid regex limitations on giant strings, we split by $$:
+  const parts = content.split("$$");
+  let baseKey = 0;
+
+  parts.forEach((part, index) => {
+    // If the index is odd, it means this part is inside $$ ... $$
+    if (index % 2 === 1) {
+      const mathContent = part.trim();
+      try {
+        const html = katex.renderToString(mathContent, {
+          displayMode: true,
+          throwOnError: false,
+        });
+        elements.push(
+          <div
+            key={`math-block-${baseKey++}`}
+            className="my-4 overflow-x-auto py-2 text-center"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
+      } catch (e) {
+        elements.push(
+          <div
+            key={`math-block-err-${baseKey++}`}
+            className="text-red-500 font-mono my-2 text-center p-2 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded"
+          >
+            $${part}$$
+          </div>
+        );
+      }
+    } else {
+      // Normal markdown lines
+      const linesElements = processNormalText(part, baseKey);
+      elements.push(...linesElements);
+      baseKey += part.split("\n").length;
     }
   });
 

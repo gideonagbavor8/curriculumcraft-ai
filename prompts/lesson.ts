@@ -3,10 +3,10 @@ export const LESSON_SYSTEM_PROMPT = `You are an expert instructional designer sp
 Your role is to help Ghanaian JHS teachers by transforming NaCCA curriculum indicators into complete, classroom-ready lesson materials.
 
 ## Cultural Context Rules — ALWAYS follow these:
-- Use Ghanaian names: Ama, Kofi, Adjoa, Kwame, Abena, Yaw, Akosua, Fiifi
-- Use Ghanaian settings: Kumasi Central Market, Cape Coast fishing harbour, Ashanti cocoa farms, Accra streets, Makola Market, Tamale, Bolgatanga
+- Use Ghanaian names: Ama, Kofi, Adjoa, Kwame, Abena, Yaw, Akosua, Fiifi, Dzifa, Edem, Kafui
+- Use Ghanaian settings: Kumasi Central Market, Cape Coast fishing harbour, Ashanti cocoa farms, Accra streets, Ho in the Volta Region, Tamale, Bolgatanga, Makola Market
 - Use Ghana Cedis (GHS) for all monetary examples
-- Reference Ghanaian foods: kenkey, banku, fufu, waakye, jollof rice, kelewele
+- Reference Ghanaian foods: kenkey, banku, fufu, waakye, jollof rice, kelewele, akple, abolo
 - Reference Ghanaian culture and values: communal living, respect for elders, hard work (obra), honesty
 - Use relatable local scenarios: trotro fares, market trading, mobile money (MoMo), football, school farming
 
@@ -16,7 +16,7 @@ Your role is to help Ghanaian JHS teachers by transforming NaCCA curriculum indi
 - Use 1. 2. 3. for numbered/sequential steps
 - Use ### for major section headings
 - Never use asterisks (*) as bullet points — use - only
-- Write in clear, professional English appropriate for trained teachers
+- Write all mathematical equations, formulas, expressions, fractions, division, and exponents using standard LaTeX: use $...$ for inline equations (e.g., $E=mc^2$ or $\frac{1}{2}$) and $$...$$ for block equations on separate lines.
 
 ## Output Structure:
 Always return EXACTLY three sections separated by these exact markers:
@@ -25,6 +25,33 @@ Always return EXACTLY three sections separated by these exact markers:
 ---STUDENT READING MATERIAL---
 
 Do not add anything before ---TEACHER NOTES--- or after the student reading material.`;
+
+const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
+  English: "Write all content in clear, standard English appropriate for Ghanaian JHS level.",
+};
+
+const DIFFICULTY_INSTRUCTIONS: Record<string, string> = {
+  struggling: `This lesson is tailored for STRUGGLING STUDENTS who need extra support:
+- Use very simple language with short sentences
+- Break every concept into the smallest possible steps
+- Include more worked examples than usual (at least 3)
+- Add a "Common Mistakes" box to the student reading material
+- Use lots of visual descriptions and concrete real-world examples
+- Check Your Understanding questions should start very easy`,
+
+  average: `This lesson is tailored for AVERAGE STUDENTS at the expected level:
+- Use standard JHS-appropriate language
+- Provide clear explanations with 2 worked examples
+- Balance theory with practice
+- Check Your Understanding questions should progress from easy to moderate`,
+
+  advanced: `This lesson is tailored for ADVANCED STUDENTS who need extension:
+- Use more sophisticated vocabulary and explain it
+- Challenge students to think beyond the indicator
+- Include extension questions that require higher-order thinking
+- Add a "Going Further" section with a challenging real-world problem
+- Check Your Understanding questions should include at least one evaluation/creation level question`,
+};
 
 export function buildLessonUserPrompt({
   indicatorCode,
@@ -36,6 +63,8 @@ export function buildLessonUserPrompt({
   bloomsLevel,
   duration,
   classSize,
+  language = "English",
+  difficultyLevel = "average",
   foundryContext,
 }: {
   indicatorCode: string;
@@ -47,8 +76,13 @@ export function buildLessonUserPrompt({
   bloomsLevel: string;
   duration: string;
   classSize: string;
+  language?: string;
+  difficultyLevel?: string;
   foundryContext?: string;
 }): string {
+  const langInstruction = LANGUAGE_INSTRUCTIONS[language] || LANGUAGE_INSTRUCTIONS.English;
+  const diffInstruction = DIFFICULTY_INSTRUCTIONS[difficultyLevel] || DIFFICULTY_INSTRUCTIONS.average;
+
   return `Generate complete lesson materials for the following NaCCA indicator:
 
 **Subject:** ${subject}
@@ -61,7 +95,13 @@ export function buildLessonUserPrompt({
 **Lesson Duration:** ${duration} minutes
 **Class Size:** ${classSize} students
 
-${foundryContext ? `**Curriculum Grounding from NaCCA Documents:**\n${foundryContext}\n` : ""}
+## Language Instruction:
+${langInstruction}
+
+## Difficulty Level:
+${diffInstruction}
+
+${foundryContext ? `## Curriculum Grounding from NaCCA Documents:\n${foundryContext}\n` : ""}
 
 ---TEACHER NOTES---
 Write detailed teacher notes including:
@@ -74,29 +114,26 @@ Write detailed teacher notes including:
   - Plenary / Wrap-up (5-10 mins)
 - **Key Vocabulary** — 4-5 terms with brief, student-friendly definitions
 - **Common Misconceptions** — 2-3 mistakes students typically make and how to address them
-- **Differentiation Tips** — how to support weaker students and challenge stronger ones in a class of ${classSize}
+- **Differentiation Tips** — specific to the ${difficultyLevel} level
 - **Ghanaian Values Link** — connect the lesson to a Ghanaian value or real-life context
 
 ---VISUAL CONTENT PROMPTS---
 Write 4 specific visual content prompts a teacher can create with minimal resources:
 
-1. **Classroom Poster / Anchor Chart** — describe exactly what it should show, including layout and key content
-2. **Board Worked Example** — describe a step-by-step worked example to write on the board using a Ghanaian context
-3. **Real-World Photograph Prompt** — describe a specific Ghanaian scene the teacher could photograph, draw, or find online to illustrate the concept
-4. **Student Notebook Diagram** — describe exactly what students should draw or complete in their exercise books
+1. **Classroom Poster / Anchor Chart** — describe exactly what it should show
+2. **Board Worked Example** — describe a step-by-step worked example using a Ghanaian context
+3. **Real-World Photograph Prompt** — describe a specific Ghanaian scene to photograph or draw
+4. **Student Notebook Diagram** — describe exactly what students should draw or complete
 
 Each prompt must be 2-3 sentences and practical for a resource-limited Ghanaian classroom.
 
 ---STUDENT READING MATERIAL---
-Write a student-facing reading passage including:
-- An opening Ghanaian story or scenario that introduces the concept (use local names and settings)
-- A clear explanation of the key concept in simple JHS-level language
+Write a student-facing reading passage in ${language} including:
+- An opening Ghanaian story or scenario that introduces the concept
+- A clear explanation of the key concept at JHS level
 - **Worked Example 1** — using a Ghanaian context with full solution
 - **Worked Example 2** — using a different Ghanaian context, slightly more challenging
-- **Check Your Understanding** — 3 questions at increasing difficulty:
-  - Question 1: Knowledge/recall level
-  - Question 2: Application level  
-  - Question 3: Analysis/evaluation level
+- **Check Your Understanding** — 3 questions at increasing difficulty
 
-Use a warm, encouraging tone. Address the student directly as "you". Total length: 300-350 words.`;
+Use a warm, encouraging tone. Total length: 300-350 words.`;
 }

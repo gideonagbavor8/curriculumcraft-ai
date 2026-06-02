@@ -6,6 +6,8 @@ export type BloomsLevel =
   | "Evaluate"
   | "Create";
 
+export type DifficultyLevel = "struggling" | "average" | "advanced";
+
 export interface Subject {
   id: string;
   name: string;
@@ -40,13 +42,14 @@ export interface SavedLesson {
   subject: string;
   grade: string;
   strand: string;
+  subStrand: string;
   teacherNotes: string;
   visualPrompts: string;
   studentReading: string;
+  difficultyLevel: string;
   createdAt: Date;
 }
 
-// Nested shape returned by /api/curriculum
 export interface CurriculumSubStrand {
   name: string;
   indicators: Pick<Indicator, "code" | "text" | "bloomsLevel">[];
@@ -63,7 +66,6 @@ export interface CurriculumResponse {
   strands: CurriculumStrand[];
 }
 
-// Lesson generation
 export interface GenerateRequest {
   indicatorCode: string;
   indicatorText: string;
@@ -74,6 +76,7 @@ export interface GenerateRequest {
   bloomsLevel: BloomsLevel;
   duration: "40" | "60" | "80";
   classSize: "25" | "35" | "45" | "60";
+  difficultyLevel: DifficultyLevel;
 }
 
 export interface GenerateResponse {
@@ -84,9 +87,9 @@ export interface GenerateResponse {
   subject: string;
   grade: string;
   strand: string;
+  difficultyLevel: string;
 }
 
-// Activity generation
 export interface MCQOption {
   label: string;
   text: string;
@@ -115,4 +118,13 @@ export interface ActivityResponse {
   mcqs: MCQuestion[];
   writingPrompts: WritingPrompt[];
   rubric: RubricCriterion[];
+}
+
+export interface QuizSession {
+  id: string;
+  indicatorCode: string;
+  subject: string;
+  grade: string;
+  questions: MCQuestion[];
+  createdAt: string;
 }

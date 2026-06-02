@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       bloomsLevel,
       duration,
       classSize,
+      difficultyLevel,
     } = body;
 
     // Validate required fields
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
       bloomsLevel,
       duration: duration || "60",
       classSize: classSize || "35",
+      difficultyLevel: difficultyLevel || "average",
       foundryContext: foundryContext || undefined,
     });
 
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest) {
       subject,
       grade,
       strand,
+      difficultyLevel: difficultyLevel || "average",
     };
 
     return NextResponse.json({ success: true, data: response });

@@ -5,7 +5,7 @@ import { Loader2, Save, Printer, CheckCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
-import type { GenerateResponse } from "@/types/curriculum";
+import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
 
 interface SelectedIndicator {
   code: string;
@@ -30,20 +30,28 @@ const CLASS_SIZES = [
   { value: "60", label: "60+ students" },
 ];
 
+
+
+const DIFFICULTY_LEVELS: { value: DifficultyLevel; label: string; description: string; color: string }[] = [
+  { value: "struggling", label: "Needs Support", description: "Extra scaffolding", color: "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 text-red-700 dark:text-red-300" },
+  { value: "average", label: "On Track", description: "Standard level", color: "border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-700 text-green-700 dark:text-green-300" },
+  { value: "advanced", label: "Advanced", description: "Extension tasks", color: "border-purple-300 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-700 text-purple-700 dark:text-purple-300" },
+];
+
 function LoadingSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-            <div className="h-4 bg-gray-200 rounded w-32" />
+        <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
           </div>
           <div className="p-5 space-y-3">
-            <div className="h-3 bg-gray-100 rounded w-full" />
-            <div className="h-3 bg-gray-100 rounded w-5/6" />
-            <div className="h-3 bg-gray-100 rounded w-4/6" />
-            <div className="h-3 bg-gray-100 rounded w-full" />
-            <div className="h-3 bg-gray-100 rounded w-3/4" />
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-full" />
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-5/6" />
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-4/6" />
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-full" />
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-3/4" />
           </div>
         </div>
       ))}
@@ -52,10 +60,11 @@ function LoadingSkeleton() {
 }
 
 export default function LessonBuilderPage() {
-  const [selectedIndicator, setSelectedIndicator] =
-    useState<SelectedIndicator | null>(null);
+  const [selectedIndicator, setSelectedIndicator] = useState<SelectedIndicator | null>(null);
   const [duration, setDuration] = useState("60");
   const [classSize, setClassSize] = useState("35");
+  const language = "English";
+  const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>("average");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -70,7 +79,6 @@ export default function LessonBuilderPage() {
     setError(null);
     setResult(null);
     setSaved(false);
-
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -85,13 +93,14 @@ export default function LessonBuilderPage() {
           bloomsLevel: selectedIndicator.bloomsLevel,
           duration,
           classSize,
+          language,
+          difficultyLevel,
         }),
       });
-
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       setResult(data.data);
-      toast.success("Lesson materials generated successfully!");
+      toast.success(`Lesson generated in ${language}!`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to generate lesson";
       setError(msg);
@@ -117,268 +126,171 @@ export default function LessonBuilderPage() {
           teacherNotes: result.teacherNotes,
           visualPrompts: result.visualPrompts,
           studentReading: result.studentReading,
+          language,
+          difficultyLevel,
         }),
       });
       const data = await res.json();
-      if (data.success) {
-        setSaved(true);
-        toast.success("Lesson saved to your library!");
-      }
-    } catch {
-      toast.error("Failed to save lesson.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
+      if (data.success) { setSaved(true); toast.success("Lesson saved to your library!"); }
+    } catch { toast.error("Failed to save lesson."); }
+    finally { setSaving(false); }
   };
 
   const handleExportPDF = async () => {
     if (!result || !printRef.current) return;
     setExporting(true);
     toast.info("Preparing PDF export...");
-
     try {
       const { default: jsPDF } = await import("jspdf");
       const { default: html2canvas } = await import("html2canvas");
-
-      const canvas = await html2canvas(printRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-      });
-
+      const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
       let heightLeft = pdfHeight;
       let position = 0;
-
       pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
       heightLeft -= pdf.internal.pageSize.getHeight();
-
       while (heightLeft > 0) {
         position = heightLeft - pdfHeight;
         pdf.addPage();
         pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
         heightLeft -= pdf.internal.pageSize.getHeight();
       }
-
-      pdf.save(`lesson-${result.indicatorCode}-${result.subject}-${result.grade}.pdf`);
-      toast.success("PDF downloaded successfully!");
-    } catch {
-      toast.error("PDF export failed. Try printing instead.");
-    } finally {
-      setExporting(false);
-    }
+      pdf.save(`lesson-${result.indicatorCode}-${language}.pdf`);
+      toast.success("PDF downloaded!");
+    } catch { toast.error("PDF export failed. Try printing instead."); }
+    finally { setExporting(false); }
   };
 
   return (
     <>
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          nav, .no-print { display: none !important; }
-          .print-content { padding: 0 !important; }
-          body { background: white !important; }
-        }
-      `}</style>
-
-      <div className="min-h-screen bg-gray-50">
-        {/* Page header */}
+      <style>{`@media print { nav, .no-print { display: none !important; } body { background: white !important; } }`}</style>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="bg-gradient-to-r from-green-800 to-green-600 px-6 py-8 no-print">
           <div className="mx-auto max-w-4xl">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full">
-                NaCCA SBC
-              </span>
+              <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full">NaCCA SBC</span>
               <span className="text-xs text-white/70">Ghana JHS</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">
-              Lesson & Material Builder
-            </h1>
-            <p className="text-green-100 text-sm mt-1">
-              Generate teacher notes, visual prompts and student materials from
-              any NaCCA indicator
-            </p>
+            <h1 className="text-2xl font-bold text-white">Lesson & Material Builder</h1>
+            <p className="text-green-100 text-sm mt-1">Generate culturally relevant lesson materials aligned to NaCCA standards</p>
           </div>
         </div>
 
-        <div className="mx-auto max-w-4xl px-4 py-6 space-y-5 print-content">
-          {/* Selector card */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 no-print">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-              Select Indicator
-            </h2>
-            <SubjectSelector onSelect={setSelectedIndicator} />
+        <div className="mx-auto max-w-4xl px-4 py-6 space-y-5">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 no-print">
+            <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-4">Select Indicator</h2>
+            <SubjectSelector onSelect={(ind) => { setSelectedIndicator(ind); setSaved(false); setResult(null); }} />
 
             {selectedIndicator && (
-              <div className="mt-5 pt-5 border-t border-gray-100 space-y-4">
+              <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700 space-y-5">
+
+                {/* Difficulty level */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-2">
+                    Student Level
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {DIFFICULTY_LEVELS.map((level) => (
+                      <button
+                        key={level.value}
+                        onClick={() => setDifficultyLevel(level.value)}
+                        className={`flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-all ${
+                          difficultyLevel === level.value
+                            ? "bg-green-700 border-green-700 text-white"
+                            : `bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 ${level.color} hover:border-green-300`
+                        }`}
+                      >
+                        <span className="text-xs font-semibold">{level.label}</span>
+                        <span className={`text-[10px] mt-0.5 ${difficultyLevel === level.value ? "text-green-200" : "opacity-70"}`}>
+                          {level.description}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Duration + Class size */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                      Lesson duration
-                    </label>
-                    <select
-                      value={duration}
-                      title="Lesson duration"
-                      onChange={(e) => setDuration(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                    >
-                      {DURATIONS.map((d) => (
-                        <option key={d.value} value={d.value}>
-                          {d.label}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">Lesson duration</label>
+                    <select value={duration} title="Lesson duration" onChange={(e) => setDuration(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500">
+                      {DURATIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                      Class size
-                    </label>
-                    <select
-                      value={classSize}
-                      title="Class size"
-                      onChange={(e) => setClassSize(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                    >
-                      {CLASS_SIZES.map((c) => (
-                        <option key={c.value} value={c.value}>
-                          {c.label}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">Class size</label>
+                    <select value={classSize} title="Class size" onChange={(e) => setClassSize(e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500">
+                      {CLASS_SIZES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                     </select>
                   </div>
                 </div>
 
-                <button
-                  onClick={handleGenerate}
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl bg-green-700 hover:bg-green-800 disabled:bg-green-300 text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Generating lesson materials...
-                    </>
-                  ) : (
-                    "✦ Generate Lesson Materials"
-                  )}
+                <button onClick={handleGenerate} disabled={loading}
+                  className="w-full py-3 rounded-xl bg-green-700 hover:bg-green-800 disabled:bg-green-300 text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {loading
+                    ? <><Loader2 size={16} className="animate-spin" />Generating Lesson Materials...</>
+                    : "✦ Generate Lesson Materials"}
                 </button>
               </div>
             )}
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700 no-print">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300 no-print">
               {error}
             </div>
           )}
 
-          {/* Loading skeleton */}
           {loading && <LoadingSkeleton />}
 
-          {/* Results */}
           {result && !loading && (
             <div ref={printRef} className="space-y-4">
-              {/* Success banner */}
-              <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 no-print">
-                <CheckCircle size={16} className="text-green-600 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-green-800">
+              <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3 no-print">
+                <CheckCircle size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-green-800 dark:text-green-300">
                     Materials generated for {result.indicatorCode}
                   </p>
-                  <p className="text-xs text-green-600">
-                    {result.subject} · {result.grade} · {result.strand}
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    {result.subject} · {result.grade} · {result.strand} · {language} · {difficultyLevel}
                   </p>
+                </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
+                    {difficultyLevel}
+                  </span>
                 </div>
               </div>
 
-              {/* Print header — only shows when printing */}
               <div className="hidden print:block mb-6">
-                <h1 className="text-xl font-bold text-gray-900">
-                  CurriculumCraft AI — Lesson Materials
-                </h1>
+                <h1 className="text-xl font-bold text-gray-900">CurriculumCraft AI — Lesson Materials</h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  {result.indicatorCode} · {result.subject} · {result.grade} · {result.strand}
+                  {result.indicatorCode} · {result.subject} · {result.grade} · {language}
                 </p>
                 <hr className="mt-3 border-gray-300" />
               </div>
 
-              {/* Section cards */}
-              <SectionCard
-                icon="📋"
-                label="Teacher Notes"
-                content={result.teacherNotes}
-                accentColor="green"
-              />
-              <SectionCard
-                icon="🎨"
-                label="Visual Content Prompts"
-                content={result.visualPrompts}
-                accentColor="amber"
-              />
-              <SectionCard
-                icon="📖"
-                label="Student Reading Material"
-                content={result.studentReading}
-                accentColor="blue"
-              />
+              <SectionCard icon="📋" label="Teacher Notes" content={result.teacherNotes} accentColor="green" />
+              <SectionCard icon="🎨" label="Visual Content Prompts" content={result.visualPrompts} accentColor="amber" />
+              <SectionCard icon="📖" label={`Student Reading Material — ${language}`} content={result.studentReading} accentColor="blue" />
 
-              {/* Action buttons */}
               <div className="grid grid-cols-3 gap-3 no-print">
-                <button
-                  onClick={handleSave}
-                  disabled={saving || saved}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-300 bg-green-50 text-green-800 text-sm font-medium hover:bg-green-100 transition-all disabled:opacity-60"
-                >
-                  {saved ? (
-                    <>
-                      <CheckCircle size={14} />
-                      Saved
-                    </>
-                  ) : saving ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={14} />
-                      Save to library
-                    </>
-                  )}
+                <button onClick={handleSave} disabled={saving || saved}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium hover:bg-green-100 dark:hover:bg-green-900/50 transition-all disabled:opacity-60">
+                  {saved ? <><CheckCircle size={14} />Saved</> : saving ? <><Loader2 size={14} className="animate-spin" />Saving...</> : <><Save size={14} />Save to library</>}
                 </button>
-
-                <button
-                  onClick={handleExportPDF}
-                  disabled={exporting}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-800 text-sm font-medium hover:bg-blue-100 transition-all disabled:opacity-60"
-                >
-                  {exporting ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download size={14} />
-                      Export PDF
-                    </>
-                  )}
+                <button onClick={handleExportPDF} disabled={exporting}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60">
+                  {exporting ? <><Loader2 size={14} className="animate-spin" />Exporting...</> : <><Download size={14} />Export PDF</>}
                 </button>
-
-                <button
-                  onClick={handlePrint}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all"
-                >
-                  <Printer size={14} />
-                  Print
+                <button onClick={() => window.print()}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+                  <Printer size={14} />Print
                 </button>
               </div>
             </div>

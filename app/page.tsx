@@ -8,9 +8,9 @@ const FEATURES = [
     description:
       "Browse the full NaCCA curriculum tree. Explore every strand, sub-strand and indicator across B7–B9 for all subjects.",
     href: "/dashboard",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-100",
+    color: "text-blue-600 dark:text-blue-300",
+    bg: "bg-blue-50 dark:bg-blue-900/40",
+    border: "border-blue-100 dark:border-blue-700",
   },
   {
     icon: BookOpen,
@@ -18,9 +18,9 @@ const FEATURES = [
     description:
       "Select any NaCCA indicator and instantly generate teacher notes, visual content prompts and student reading materials.",
     href: "/lesson-builder",
-    color: "text-green-700",
-    bg: "bg-green-50",
-    border: "border-green-100",
+    color: "text-green-700 dark:text-green-300",
+    bg: "bg-green-50 dark:bg-green-900/40",
+    border: "border-green-100 dark:border-green-700",
     featured: true,
   },
   {
@@ -29,9 +29,9 @@ const FEATURES = [
     description:
       "Generate interactive MCQs, writing prompts and assessment rubrics aligned to any NaCCA indicator.",
     href: "/activity-suite",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-100",
+    color: "text-amber-600 dark:text-amber-300",
+    bg: "bg-amber-50 dark:bg-amber-900/40",
+    border: "border-amber-100 dark:border-amber-700",
   },
 ];
 
@@ -44,7 +44,7 @@ const STATS = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
       <div className="bg-gradient-to-br from-green-900 via-green-800 to-green-600 px-6 py-20 text-center">
         <div className="mx-auto max-w-3xl">
@@ -87,15 +87,17 @@ export default function HomePage() {
       </div>
 
       {/* Stats */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div className="mx-auto max-w-4xl px-6 py-6">
           <div className="grid grid-cols-4 gap-6">
             {STATS.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-2xl font-bold text-green-800">
+                <div className="text-2xl font-bold text-green-800 dark:text-green-400">
                   {stat.value}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -105,12 +107,11 @@ export default function HomePage() {
       {/* Features */}
       <div className="mx-auto max-w-4xl px-6 py-12">
         <div className="text-center mb-10">
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
             Three powerful tools for teachers
           </h2>
-          <p className="text-sm text-gray-500">
-            Everything you need to plan, teach and assess using the NaCCA
-            curriculum
+          <p className="text-sm text-gray-500 dark:text-gray-300">
+            Everything you need to plan, teach and assess using the NaCCA curriculum
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -122,24 +123,20 @@ export default function HomePage() {
                 href={feature.href}
                 className={`group rounded-xl border p-6 transition-all hover:shadow-md ${
                   feature.featured
-                    ? "border-green-300 bg-green-50/50 hover:border-green-400"
-                    : `${feature.border} bg-white hover:border-gray-300`
+                    ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/20 hover:border-green-400"
+                    : `${feature.border} bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-500`
                 }`}
               >
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${feature.bg} mb-4`}
-                >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${feature.bg} mb-4`}>
                   <Icon size={20} className={feature.color} />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2 text-sm">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm">
                   {feature.title}
                 </h3>
-                <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-4">
                   {feature.description}
                 </p>
-                <div
-                  className={`flex items-center gap-1 text-xs font-medium ${feature.color} group-hover:gap-2 transition-all`}
-                >
+                <div className={`flex items-center gap-1 text-xs font-medium ${feature.color} group-hover:gap-2 transition-all`}>
                   Get started <ArrowRight size={12} />
                 </div>
               </Link>
@@ -149,7 +146,7 @@ export default function HomePage() {
       </div>
 
       {/* Problem statement */}
-      <div className="bg-green-900 px-6 py-12 text-center">
+      <div className="bg-green-900 dark:bg-green-950 px-6 py-12 text-center">
         <div className="mx-auto max-w-2xl">
           <h2 className="text-xl font-bold text-white mb-3">
             Built for Ghana&apos;s teachers

@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  .dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+}
+
 @layer utilities {
   @keyframes fadeUp {
     from {
@@ -14,5 +26,14 @@
 
   .animate-fadeUp {
     animation: fadeUp 0.3s ease forwards;
+  }
+
+  @keyframes pulse-skeleton {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .animate-pulse {
+    animation: pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }
