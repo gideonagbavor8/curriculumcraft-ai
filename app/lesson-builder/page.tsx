@@ -113,6 +113,7 @@ export default function LessonBuilderPage() {
   const handleSave = async () => {
     if (!result || !selectedIndicator) return;
     setSaving(true);
+    window.dispatchEvent(new Event("lesson-saved"));
     try {
       const res = await fetch("/api/lessons", {
         method: "POST",

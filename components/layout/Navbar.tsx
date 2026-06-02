@@ -27,19 +27,38 @@ export default function Navbar() {
     document.documentElement.classList.toggle("dark", isDark);
   }, []);
 
-  // Fetch saved lessons count
+  // Fetch saved lessons count — defined outside effect to reuse
+  const fetchCount = async () => {
+    try {
+      const res = await fetch("/api/lessons");
+      const data = await res.json();
+      if (data.success) setSavedCount(data.count);
+    } catch {
+      // silently fail
+    }
+  };
+
+  // Refetch on route change
   useEffect(() => {
-    const fetchCount = async () => {
+    let cancelled = false;
+    const load = async () => {
       try {
         const res = await fetch("/api/lessons");
         const data = await res.json();
-        if (data.success) setSavedCount(data.count);
+        if (!cancelled && data.success) setSavedCount(data.count);
       } catch {
         // silently fail
       }
     };
-    fetchCount();
+    load();
+    return () => { cancelled = true; };
   }, [pathname]);
+
+  // Listen for lesson-saved event fired from lesson builder
+  useEffect(() => {
+    window.addEventListener("lesson-saved", fetchCount);
+    return () => window.removeEventListener("lesson-saved", fetchCount);
+  }, []);
 
   const toggleTheme = () => {
     const next = !dark;
@@ -91,7 +110,6 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-2">
-            {/* Saved lessons */}
             <Link
               href="/saved"
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
@@ -105,7 +123,6 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Theme toggle */}
             {mounted && (
               <button
                 onClick={toggleTheme}
