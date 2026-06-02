@@ -273,7 +273,7 @@ export default function LessonBuilderPage() {
               <div className="hidden print:block mb-6">
                 <h1 className="text-xl font-bold text-gray-900">CurriculumCraft AI — Lesson Materials</h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  {result.indicatorCode} · {result.subject} · {result.grade} · {language}
+                  {result.indicatorCode} · {result.subject} · {result.grade}
                 </p>
                 <hr className="mt-3 border-gray-300" />
               </div>

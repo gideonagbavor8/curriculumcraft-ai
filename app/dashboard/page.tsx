@@ -62,26 +62,29 @@ function IndicatorRow({
   subStrand: string;
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-200 dark:hover:border-green-700 hover:bg-green-50/30 dark:hover:bg-green-900/20 transition-all group">
-      <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex-shrink-0 mt-0.5 group-hover:bg-green-700 dark:group-hover:bg-green-600 group-hover:text-white transition-colors">
-        {indicator.code}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{indicator.text}</p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span
-            className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
-              BLOOMS_COLORS[indicator.bloomsLevel] || "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600"
-            }`}
-          >
-            {indicator.bloomsLevel}
-          </span>
-          <span className="text-[10px] text-gray-400 dark:text-gray-500">{indicator.grade}</span>
-        </div>
+    <div className="p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-200 dark:hover:border-green-700 hover:bg-green-50/30 dark:hover:bg-green-900/10 transition-all group">
+      {/* Top row — code badge + blooms + grade */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-green-700 group-hover:text-white transition-colors flex-shrink-0">
+          {indicator.code}
+        </span>
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${
+          BLOOMS_COLORS[indicator.bloomsLevel] || "bg-gray-100 text-gray-600 border-gray-200"
+        }`}>
+          {indicator.bloomsLevel}
+        </span>
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
+          {indicator.grade}
+        </span>
       </div>
+      {/* Indicator text */}
+      <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed mb-3">
+        {indicator.text}
+      </p>
+      {/* Build lesson button — full width on mobile */}
       <button
         onClick={() => onBuild(indicator, subject, strand, subStrand)}
-        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-700 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-all hover:bg-green-800"
+        className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-green-700 text-white text-xs font-medium hover:bg-green-800 transition-all"
       >
         <BookOpen size={11} />
         Build Lesson
@@ -324,15 +327,15 @@ export default function DashboardPage() {
 
           {/* Stats */}
           {!loading && (
-            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                <span className="font-semibold text-gray-800 dark:text-gray-200">{subjectLabel}</span> · Grade {grade}
+            <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-xs text-gray-500 dark:text-gray-300">
+                <span className="font-semibold text-gray-800 dark:text-gray-100">{subjectLabel}</span> · Grade {grade}
               </span>
-              <span className="text-xs text-gray-500">
-                <span className="font-semibold text-gray-800">{strands.length}</span> strands
+              <span className="text-xs text-gray-500 dark:text-gray-300">
+                <span className="font-semibold text-gray-800 dark:text-gray-100">{strands.length}</span> strands
               </span>
-              <span className="text-xs text-gray-500">
-                <span className="font-semibold text-gray-800">{totalIndicators}</span> indicators
+              <span className="text-xs text-gray-500 dark:text-gray-300">
+                <span className="font-semibold text-gray-800 dark:text-gray-100">{totalIndicators}</span> indicators
               </span>
             </div>
           )}

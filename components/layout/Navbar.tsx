@@ -136,24 +136,24 @@ export default function Navbar() {
         </div>
 
         {/* Mobile nav */}
-        <div className="flex md:hidden gap-1 pb-3 overflow-x-auto">
-          {NAV_LINKS.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                  isActive
-                    ? "bg-green-700 text-white"
-                    : "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-900/40 hover:text-green-800"
-                }`}
-              >
-                <Icon size={13} />
-                {label}
-              </Link>
-            );
-          })}
+        <div className="flex md:hidden gap-1 pb-3 overflow-x-auto scrollbar-hide">
+            {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                    isActive
+                      ? "bg-green-700 text-white"
+                      : "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-900/40 hover:text-green-800"
+                  }`}
+                >
+                  <Icon size={13} />
+                  {label}
+                </Link>
+              );
+            })}
         </div>
       </div>
     </nav>

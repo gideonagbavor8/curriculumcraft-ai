@@ -48,11 +48,11 @@ export default function HomePage() {
       {/* Hero */}
       <div className="bg-gradient-to-br from-green-900 via-green-800 to-green-600 px-6 py-20 text-center">
         <div className="mx-auto max-w-3xl">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full border border-white/20">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6">
+            <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full border border-white/20 text-center">
               🇬🇭 Built for Ghana
             </span>
-            <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full border border-white/20">
+            <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full border border-white/20 text-center">
               NaCCA Standards-Based Curriculum
             </span>
           </div>
@@ -66,10 +66,10 @@ export default function HomePage() {
             teacher notes, visual prompts and student activities from any NaCCA
             indicator in seconds.
           </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/lesson-builder"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-green-800 font-semibold text-sm hover:bg-green-50 transition-all shadow-lg hover:shadow-xl"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-green-800 font-semibold text-sm hover:bg-green-50 transition-all shadow-lg hover:shadow-xl"
             >
               <BookOpen size={16} />
               Start Building Lessons
@@ -77,7 +77,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 text-white font-semibold text-sm hover:bg-white/20 transition-all border border-white/20"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/10 text-white font-semibold text-sm hover:bg-white/20 transition-all border border-white/20"
             >
               <LayoutDashboard size={16} />
               Browse Curriculum
