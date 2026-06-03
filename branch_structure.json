@@ -1,0 +1,18 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "main",
+    "origin",
+    "vercel/install-vercel-web-analytics-rqnbbj"
+  ],
+  "parent": {
+    "main": null,
+    "origin": "main",
+    "vercel/install-vercel-web-analytics-rqnbbj": "main"
+  },
+  "order": [
+    "main",
+    "origin",
+    "vercel/install-vercel-web-analytics-rqnbbj"
+  ]
+}
