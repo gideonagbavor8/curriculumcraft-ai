@@ -8,6 +8,7 @@ import SectionCard from "@/components/lesson/SectionCard";
 import VisualPromptCard from "@/components/lesson/VisualPromptCard";
 import CitationBanner from "@/components/lesson/CitationBanner";
 import StudentWorksheetModal from "@/components/lesson/StudentWorksheetModal";
+import ReferenceInspector from "@/components/lesson/ReferenceInspector";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
 
 interface SelectedIndicator {
@@ -71,6 +72,7 @@ export default function LessonBuilderPage() {
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isWorksheetOpen, setIsWorksheetOpen] = useState(false);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -259,7 +261,11 @@ export default function LessonBuilderPage() {
 
           {result && !loading && (
             <div ref={printRef} className="space-y-4">
-              <CitationBanner citations={result.citations} indicatorCode={result.indicatorCode} />
+              <CitationBanner 
+                citations={result.citations} 
+                indicatorCode={result.indicatorCode} 
+                onInspect={() => setIsInspectorOpen(true)}
+              />
 
               <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3 no-print">
                 <CheckCircle size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -286,9 +292,28 @@ export default function LessonBuilderPage() {
                 <hr className="mt-3 border-gray-300" />
               </div>
 
-              <SectionCard icon="📋" label="Teacher Notes" content={result.teacherNotes} accentColor="green" citations={result.citations} />
-              <VisualPromptCard content={result.visualPrompts} citations={result.citations} subject={result.subject} />
-              <SectionCard icon="📖" label={`Student Reading Material — ${language}`} content={result.studentReading} accentColor="blue" citations={result.citations} />
+              <SectionCard 
+                icon="📋" 
+                label="Teacher Notes" 
+                content={result.teacherNotes} 
+                accentColor="green" 
+                citations={result.citations} 
+                onInspect={() => setIsInspectorOpen(true)}
+              />
+              <VisualPromptCard 
+                content={result.visualPrompts} 
+                citations={result.citations} 
+                subject={result.subject} 
+                onInspect={() => setIsInspectorOpen(true)}
+              />
+              <SectionCard 
+                icon="📖" 
+                label={`Student Reading Material — ${language}`} 
+                content={result.studentReading} 
+                accentColor="blue" 
+                citations={result.citations} 
+                onInspect={() => setIsInspectorOpen(true)}
+              />
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
                 <button onClick={handleSave} disabled={saving || saved}
@@ -323,6 +348,21 @@ export default function LessonBuilderPage() {
           grade={result.grade}
           strand={result.strand}
           subStrand={selectedIndicator?.subStrand}
+        />
+      )}
+
+      {result && (
+        <ReferenceInspector
+          isOpen={isInspectorOpen}
+          onClose={() => setIsInspectorOpen(false)}
+          indicatorCode={result.indicatorCode}
+          indicatorText={selectedIndicator?.text || ""}
+          subject={result.subject}
+          grade={result.grade}
+          strand={result.strand}
+          subStrand={selectedIndicator?.subStrand}
+          bloomsLevel={selectedIndicator?.bloomsLevel}
+          foundryContext={result.foundryContext}
         />
       )}
     </>

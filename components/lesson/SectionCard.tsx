@@ -11,6 +11,7 @@ interface SectionCardProps {
   content: string;
   accentColor: "green" | "amber" | "blue";
   citations?: Citation[];
+  onInspect?: () => void;
 }
 
 const ACCENT_STYLES = {
@@ -91,7 +92,7 @@ export default function SectionCard({
 
       {/* Content */}
       <div className="px-5 py-4">
-        <MarkdownRenderer content={content} citations={citations} />
+        <MarkdownRenderer content={content} citations={citations} onInspect={onInspect} />
       </div>
     </div>
   );

@@ -8,9 +8,10 @@ interface MarkdownRendererProps {
   content: string;
   className?: string;
   citations?: Citation[];
+  onInspect?: () => void;
 }
 
-export function parseInlineContent(text: string, citations?: Citation[]): React.ReactNode[] {
+export function parseInlineContent(text: string, citations?: Citation[], onInspect?: () => void): React.ReactNode[] {
   const tokens: React.ReactNode[] = [];
   // Regex to match: NaCCA codes (e.g. B7.1.2.1), inline math ($...$), bold (**...**), or italic (*...*)
   const regex = /([A-Z]\d+\.\d+\.\d+\.\d+|\$\$[^\$]+\$\$|\$[^\$]+\$|\*\*[^*]+\*\*|\*[^*]+\*)/g;
@@ -29,6 +30,7 @@ export function parseInlineContent(text: string, citations?: Citation[]): React.
             key={i}
             text={citation.text}
             source={citation.source}
+            onClick={onInspect}
           >
             <span className="font-mono font-semibold text-amber-700 dark:text-amber-400">
               {part}
@@ -80,12 +82,12 @@ export function parseInlineContent(text: string, citations?: Citation[]): React.
       const boldText = part.slice(2, -2);
       tokens.push(
         <strong key={i} className="font-semibold text-gray-900 dark:text-white">
-          {parseInlineContent(boldText, citations)}
+          {parseInlineContent(boldText, citations, onInspect)}
         </strong>
       );
     } else if (part.startsWith("*") && part.endsWith("*")) {
       const italicText = part.slice(1, -1);
-      tokens.push(<em key={i}>{parseInlineContent(italicText, citations)}</em>);
+      tokens.push(<em key={i}>{parseInlineContent(italicText, citations, onInspect)}</em>);
     } else {
       tokens.push(<React.Fragment key={i}>{part}</React.Fragment>);
     }
@@ -94,7 +96,7 @@ export function parseInlineContent(text: string, citations?: Citation[]): React.
   return tokens.length === 0 ? [text] : tokens;
 }
 
-function processNormalText(text: string, baseKey: number, citations?: Citation[]): React.ReactNode[] {
+function processNormalText(text: string, baseKey: number, citations?: Citation[], onInspect?: () => void): React.ReactNode[] {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
 
@@ -113,7 +115,7 @@ function processNormalText(text: string, baseKey: number, citations?: Citation[]
           key={key}
           className="text-[11px] font-bold uppercase tracking-widest text-green-700 dark:text-green-400 mt-4 mb-1"
         >
-          {parseInlineContent(h3[1], citations)}
+          {parseInlineContent(h3[1], citations, onInspect)}
         </p>
       );
     } else if (h2) {
@@ -122,7 +124,7 @@ function processNormalText(text: string, baseKey: number, citations?: Citation[]
           key={key}
           className="text-sm font-bold text-gray-900 dark:text-white mt-4 mb-1"
         >
-          {parseInlineContent(h2[1], citations)}
+          {parseInlineContent(h2[1], citations, onInspect)}
         </p>
       );
     } else if (h1) {
@@ -131,7 +133,7 @@ function processNormalText(text: string, baseKey: number, citations?: Citation[]
           key={key}
           className="text-base font-bold text-gray-900 dark:text-white mt-4 mb-2"
         >
-          {parseInlineContent(h1[1], citations)}
+          {parseInlineContent(h1[1], citations, onInspect)}
         </p>
       );
     } else if (bullet) {
@@ -141,7 +143,7 @@ function processNormalText(text: string, baseKey: number, citations?: Citation[]
             •
           </span>
           <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {parseInlineContent(bullet[1], citations)}
+            {parseInlineContent(bullet[1], citations, onInspect)}
           </span>
         </div>
       );
@@ -152,7 +154,7 @@ function processNormalText(text: string, baseKey: number, citations?: Citation[]
             {numbered[1]}.
           </span>
           <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {parseInlineContent(numbered[2], citations)}
+            {parseInlineContent(numbered[2], citations, onInspect)}
           </span>
         </div>
       );
@@ -164,7 +166,7 @@ function processNormalText(text: string, baseKey: number, citations?: Citation[]
           key={key}
           className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed my-0.5"
         >
-          {parseInlineContent(line, citations)}
+          {parseInlineContent(line, citations, onInspect)}
         </p>
       );
     }
@@ -177,6 +179,7 @@ export default function MarkdownRenderer({
   content,
   className = "",
   citations,
+  onInspect,
 }: MarkdownRendererProps) {
   if (!content) return null;
 
@@ -216,7 +219,7 @@ export default function MarkdownRenderer({
       }
     } else {
       // Normal markdown lines
-      const linesElements = processNormalText(part, baseKey, citations);
+      const linesElements = processNormalText(part, baseKey, citations, onInspect);
       elements.push(...linesElements);
       baseKey += part.split("\n").length;
     }

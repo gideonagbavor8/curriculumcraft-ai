@@ -96,6 +96,7 @@ export interface GenerateResponse {
   strand: string;
   difficultyLevel: string;
   citations?: Citation[];
+  foundryContext?: string;
 }
 
 export interface MCQOption {

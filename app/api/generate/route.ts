@@ -172,6 +172,7 @@ export async function POST(request: NextRequest) {
       strand,
       difficultyLevel: difficultyLevel || "average",
       citations: [demoCitation],
+      foundryContext: foundryContext || undefined,
     };
 
     return NextResponse.json({ success: true, data: response });

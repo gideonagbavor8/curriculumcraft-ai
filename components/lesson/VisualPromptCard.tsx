@@ -10,12 +10,14 @@ interface VisualPromptCardProps {
   content: string;
   citations?: Citation[];
   subject?: string;
+  onInspect?: () => void;
 }
 
 export default function VisualPromptCard({
   content,
   citations,
   subject,
+  onInspect,
 }: VisualPromptCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -66,7 +68,7 @@ export default function VisualPromptCard({
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
             Full Text
           </h3>
-          <MarkdownRenderer content={content} citations={citations} />
+          <MarkdownRenderer content={content} citations={citations} onInspect={onInspect} />
         </div>
       </div>
     </div>
