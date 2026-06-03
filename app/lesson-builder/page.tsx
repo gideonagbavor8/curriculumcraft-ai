@@ -113,7 +113,6 @@ export default function LessonBuilderPage() {
   const handleSave = async () => {
     if (!result || !selectedIndicator) return;
     setSaving(true);
-    window.dispatchEvent(new Event("lesson-saved"));
     try {
       const res = await fetch("/api/lessons", {
         method: "POST",
@@ -132,9 +131,16 @@ export default function LessonBuilderPage() {
         }),
       });
       const data = await res.json();
-      if (data.success) { setSaved(true); toast.success("Lesson saved to your library!"); }
-    } catch { toast.error("Failed to save lesson."); }
-    finally { setSaving(false); }
+      if (data.success) {
+        setSaved(true);
+        toast.success("Lesson saved to your library!");
+        window.dispatchEvent(new Event("lesson-saved"));
+      }
+    } catch {
+      toast.error("Failed to save lesson.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleExportPDF = async () => {
@@ -260,7 +266,7 @@ export default function LessonBuilderPage() {
                     Materials generated for {result.indicatorCode}
                   </p>
                   <p className="text-xs text-green-600 dark:text-green-400">
-                    {result.subject} · {result.grade} · {result.strand} · {language} · {difficultyLevel}
+                    {result.subject} · {result.grade} · {result.strand} · {difficultyLevel}
                   </p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">

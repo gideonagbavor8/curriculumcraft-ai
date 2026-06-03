@@ -42,8 +42,12 @@ export default function SavedPage() {
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      await fetch(`/api/lessons?id=${id}`, { method: "DELETE" });
-      setLessons((prev) => prev.filter((l) => l.id !== id));
+      const res = await fetch(`/api/lessons?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setLessons((prev) => prev.filter((l) => l.id !== id));
+        window.dispatchEvent(new Event("lesson-saved"));
+      }
     } catch (err) {
       console.error("Failed to delete:", err);
     } finally {
