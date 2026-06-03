@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Loader2, Save, Printer, CheckCircle, Download } from "lucide-react";
+import { Loader2, Save, Printer, CheckCircle, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
 import VisualPromptCard from "@/components/lesson/VisualPromptCard";
 import CitationBanner from "@/components/lesson/CitationBanner";
+import StudentWorksheetModal from "@/components/lesson/StudentWorksheetModal";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
 
 interface SelectedIndicator {
@@ -69,6 +70,7 @@ export default function LessonBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isWorksheetOpen, setIsWorksheetOpen] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -288,24 +290,41 @@ export default function LessonBuilderPage() {
               <VisualPromptCard content={result.visualPrompts} citations={result.citations} subject={result.subject} />
               <SectionCard icon="📖" label={`Student Reading Material — ${language}`} content={result.studentReading} accentColor="blue" citations={result.citations} />
 
-              <div className="grid grid-cols-3 gap-3 no-print">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
                 <button onClick={handleSave} disabled={saving || saved}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium hover:bg-green-100 dark:hover:bg-green-900/50 transition-all disabled:opacity-60">
-                  {saved ? <><CheckCircle size={14} />Saved</> : saving ? <><Loader2 size={14} className="animate-spin" />Saving...</> : <><Save size={14} />Save to library</>}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-all disabled:opacity-60 cursor-pointer">
+                  {saved ? <><CheckCircle size={14} />Saved</> : saving ? <><Loader2 size={14} className="animate-spin" />Saving...</> : <><Save size={14} />Save to Library</>}
+                </button>
+                <button onClick={() => setIsWorksheetOpen(true)}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all cursor-pointer transform hover:scale-105 active:scale-95 duration-150">
+                  <FileText size={14} />Student Worksheet
                 </button>
                 <button onClick={handleExportPDF} disabled={exporting}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60">
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60 cursor-pointer">
                   {exporting ? <><Loader2 size={14} className="animate-spin" />Exporting...</> : <><Download size={14} />Export PDF</>}
                 </button>
                 <button onClick={() => window.print()}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                  <Printer size={14} />Print
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer">
+                  <Printer size={14} />Print Lesson
                 </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {result && (
+        <StudentWorksheetModal
+          isOpen={isWorksheetOpen}
+          onClose={() => setIsWorksheetOpen(false)}
+          studentReading={result.studentReading}
+          indicatorCode={result.indicatorCode}
+          subject={result.subject}
+          grade={result.grade}
+          strand={result.strand}
+          subStrand={selectedIndicator?.subStrand}
+        />
+      )}
     </>
   );
 }
