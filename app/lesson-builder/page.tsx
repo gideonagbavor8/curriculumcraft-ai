@@ -285,7 +285,7 @@ export default function LessonBuilderPage() {
               </div>
 
               <SectionCard icon="📋" label="Teacher Notes" content={result.teacherNotes} accentColor="green" citations={result.citations} />
-              <VisualPromptCard content={result.visualPrompts} citations={result.citations} />
+              <VisualPromptCard content={result.visualPrompts} citations={result.citations} subject={result.subject} />
               <SectionCard icon="📖" label={`Student Reading Material — ${language}`} content={result.studentReading} accentColor="blue" citations={result.citations} />
 
               <div className="grid grid-cols-3 gap-3 no-print">

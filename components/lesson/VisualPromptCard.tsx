@@ -9,11 +9,13 @@ import type { Citation } from "@/types/curriculum";
 interface VisualPromptCardProps {
   content: string;
   citations?: Citation[];
+  subject?: string;
 }
 
 export default function VisualPromptCard({
   content,
   citations,
+  subject,
 }: VisualPromptCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -58,7 +60,7 @@ export default function VisualPromptCard({
 
       {/* Content */}
       <div className="px-5 py-4 space-y-4">
-        <VisualPromptPreview content={content} />
+        <VisualPromptPreview content={content} subject={subject} />
 
         <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
