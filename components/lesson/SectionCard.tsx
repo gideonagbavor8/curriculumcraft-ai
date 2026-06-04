@@ -41,6 +41,7 @@ export default function SectionCard({
   content,
   accentColor,
   citations,
+  onInspect,
 }: SectionCardProps) {
   const [copied, setCopied] = useState(false);
   const styles = ACCENT_STYLES[accentColor];
