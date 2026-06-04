@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Loader2, Save, Printer, CheckCircle, Download, FileText } from "lucide-react";
+import { Loader2, Save, Printer, CheckCircle, Download, FileText, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
@@ -9,6 +9,7 @@ import VisualPromptCard from "@/components/lesson/VisualPromptCard";
 import CitationBanner from "@/components/lesson/CitationBanner";
 import StudentWorksheetModal from "@/components/lesson/StudentWorksheetModal";
 import ReferenceInspector from "@/components/lesson/ReferenceInspector";
+import ErrorCard from "@/components/lesson/ErrorCard";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
 
 interface SelectedIndicator {
@@ -35,6 +36,17 @@ const CLASS_SIZES = [
 ];
 
 
+
+// Hardcoded demo indicator — B7 Mathematics, Number & Numeration, Fractions
+const DEMO_INDICATOR = {
+  code: "B7.1.2.1",
+  text: "Apply understanding of fractions (proper, improper and mixed numbers) to solve real-life problems involving sharing and grouping.",
+  bloomsLevel: "Apply",
+  grade: "B7",
+  subject: "Mathematics",
+  strand: "Number",
+  subStrand: "Fractions, Decimals and Percentages",
+};
 
 const DIFFICULTY_LEVELS: { value: DifficultyLevel; label: string; description: string; color: string }[] = [
   { value: "struggling", label: "Needs Support", description: "Extra scaffolding", color: "border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 text-red-700 dark:text-red-300" },
@@ -77,8 +89,28 @@ export default function LessonBuilderPage() {
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
-  const handleGenerate = async () => {
-    if (!selectedIndicator) return;
+  // Pre-fill the form with demo data and immediately generate
+  const loadDemo = () => {
+    setSelectedIndicator(DEMO_INDICATOR);
+    setDuration("60");
+    setClassSize("35");
+    setDifficultyLevel("average");
+    setSaved(false);
+    setResult(null);
+    setError(null);
+    // Small timeout so state settles before generation fires
+    setTimeout(() => {
+      handleGenerateWith(DEMO_INDICATOR, "60", "35", "average");
+    }, 50);
+  };
+
+  // Core generation logic — accepts explicit params so demo can pass values before state settles
+  const handleGenerateWith = async (
+    indicator: SelectedIndicator,
+    dur: string,
+    size: string,
+    difficulty: DifficultyLevel
+  ) => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -88,17 +120,17 @@ export default function LessonBuilderPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          indicatorCode: selectedIndicator.code,
-          indicatorText: selectedIndicator.text,
-          subject: selectedIndicator.subject,
-          grade: selectedIndicator.grade,
-          strand: selectedIndicator.strand,
-          subStrand: selectedIndicator.subStrand,
-          bloomsLevel: selectedIndicator.bloomsLevel,
-          duration,
-          classSize,
+          indicatorCode: indicator.code,
+          indicatorText: indicator.text,
+          subject: indicator.subject,
+          grade: indicator.grade,
+          strand: indicator.strand,
+          subStrand: indicator.subStrand,
+          bloomsLevel: indicator.bloomsLevel,
+          duration: dur,
+          classSize: size,
           language,
-          difficultyLevel,
+          difficultyLevel: difficulty,
         }),
       });
       const data = await res.json();
@@ -112,6 +144,11 @@ export default function LessonBuilderPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGenerate = () => {
+    if (!selectedIndicator) return;
+    handleGenerateWith(selectedIndicator, duration, classSize, difficultyLevel);
   };
 
   const handleSave = async () => {
@@ -192,7 +229,18 @@ export default function LessonBuilderPage() {
 
         <div className="mx-auto max-w-4xl px-4 py-6 space-y-5">
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 no-print">
-            <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-4">Select Indicator</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider">Select Indicator</h2>
+              <button
+                id="demo-btn"
+                onClick={loadDemo}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-md hover:shadow-lg hover:shadow-violet-500/30 transform hover:scale-105 active:scale-95 duration-150"
+              >
+                <Wand2 size={12} />
+                Try Demo
+              </button>
+            </div>
             <SubjectSelector onSelect={(ind) => { setSelectedIndicator(ind); setSaved(false); setResult(null); }} />
 
             {selectedIndicator && (
@@ -252,8 +300,8 @@ export default function LessonBuilderPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300 no-print">
-              {error}
+            <div className="no-print">
+              <ErrorCard message={error} onRetry={handleGenerate} />
             </div>
           )}
 
