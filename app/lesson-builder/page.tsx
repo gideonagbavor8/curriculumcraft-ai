@@ -267,7 +267,7 @@ export default function LessonBuilderPage() {
       addSection(`Student Reading Material — ${language}`, result.studentReading, [29, 78, 216]);
 
       // Footer on every page
-      const totalPages = (pdf.internal as { getNumberOfPages: () => number }).getNumberOfPages();
+      const totalPages = (pdf.internal as unknown as{ getNumberOfPages: () => number }).getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
         pdf.setFontSize(7);
