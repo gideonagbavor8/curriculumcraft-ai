@@ -185,32 +185,106 @@ export default function LessonBuilderPage() {
   };
 
   const handleExportPDF = async () => {
-    if (!result || !printRef.current) return;
+    if (!result) return;
     setExporting(true);
     toast.info("Preparing PDF export...");
     try {
-      const { default: jsPDF } = await import("jspdf");
-      const { default: html2canvas } = await import("html2canvas");
-      const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      let heightLeft = pdfHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-      while (heightLeft > 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
+      const jspdfModule = await import("jspdf");
+      const JsPDF = jspdfModule.jsPDF ?? jspdfModule.default;
+      const pdf = new JsPDF("p", "mm", "a4");
+      const pageW = pdf.internal.pageSize.getWidth();
+      const margin = 15;
+      const maxW = pageW - margin * 2;
+      let y = 20;
+
+      const checkPage = (needed = 10) => {
+        if (y + needed > 275) { pdf.addPage(); y = 20; }
+      };
+
+      // Header bar
+      pdf.setFillColor(22, 101, 52);
+      pdf.rect(0, 0, pageW, 28, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("CurriculumCraft AI", margin, 12);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("NaCCA Standards-Based Curriculum — Ghana JHS", margin, 20);
+      pdf.text(new Date().toLocaleDateString("en-GB"), pageW - margin, 20, { align: "right" });
+
+      // Metadata strip
+      y = 36;
+      pdf.setFillColor(240, 253, 244);
+      pdf.rect(margin, y, maxW, 16, "F");
+      pdf.setTextColor(22, 101, 52);
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(
+        `${result.indicatorCode}  ·  ${result.subject}  ·  ${result.grade}  ·  ${result.strand}  ·  ${difficultyLevel}`,
+        margin + 3, y + 6
+      );
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7.5);
+      pdf.text(selectedIndicator?.text ?? "", margin + 3, y + 12, { maxWidth: maxW - 6 });
+      y += 24;
+
+      // Section renderer
+      const addSection = (
+        title: string,
+        content: string,
+        rgb: [number, number, number]
+      ) => {
+        checkPage(20);
+        pdf.setFillColor(...rgb);
+        pdf.rect(margin, y, maxW, 8, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(title, margin + 3, y + 5.5);
+        y += 11;
+        pdf.setTextColor(30, 30, 30);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "normal");
+        // Strip markdown
+        const plain = content
+          .replace(/#{1,6}\s+/g, "")
+          .replace(/\*\*(.+?)\*\*/g, "$1")
+          .replace(/\*(.+?)\*/g, "$1")
+          .replace(/`(.+?)`/g, "$1")
+          .replace(/^[-*]\s+/gm, "• ");
+        const lines = pdf.splitTextToSize(plain, maxW);
+        for (const line of lines) {
+          checkPage(6);
+          pdf.text(line, margin, y);
+          y += 5.5;
+        }
+        y += 5;
+      };
+
+      addSection("Teacher Notes", result.teacherNotes, [21, 128, 61]);
+      addSection("Visual Prompts & Classroom Activities", result.visualPrompts, [180, 83, 9]);
+      addSection(`Student Reading Material — ${language}`, result.studentReading, [29, 78, 216]);
+
+      // Footer on every page
+      const totalPages = (pdf.internal as { getNumberOfPages: () => number }).getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(7);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(`CurriculumCraft AI  ·  Page ${i} of ${totalPages}`, pageW / 2, 291, { align: "center" });
       }
+
       pdf.save(`lesson-${result.indicatorCode}-${language}.pdf`);
       toast.success("PDF downloaded!");
-    } catch { toast.error("PDF export failed. Try printing instead."); }
-    finally { setExporting(false); }
+    } catch (err) {
+      console.error("PDF export error:", err);
+      toast.error("PDF export failed. Try the Print button instead.");
+    } finally {
+      setExporting(false);
+    }
   };
+
 
   return (
     <>

@@ -118,7 +118,12 @@ export default function SavedPage() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed line-clamp-2">
-                      {lesson.teacherNotes.slice(0, 120)}...
+                      {lesson.teacherNotes
+                        .replace(/\*\*/g, "")
+                        .replace(/\*/g, "")
+                        .replace(/#{1,3}\s/g, "")
+                        .replace(/^-\s/gm, "")
+                        .slice(0, 120)}...
                     </p>
                     <p className="text-[10px] text-gray-400 dark:text-gray-400 mt-2">
                       Saved{" "}
