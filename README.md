@@ -120,6 +120,9 @@ GitHub Copilot was used throughout the development of this project in VS Code:
 | Science | B7, B8, B9 | Life Sciences, Physical Sciences, Earth & Space |
 | English Language | B7, B8, B9 | Reading & Comprehension, Writing, Grammar & Usage, Literature |
 | Computing | B7, B8, B9 | Computing Systems, Data & Information, Programming & Algorithms, Digital Citizenship |
+| Social Studies | B7, B8, B9 | The Individual & Society, Governance & Citizenship, Environment & Sustainability |
+| RME | B7, B8, B9 | Religious Beliefs & Practices, Moral Values & Character |
+| Career Technology | B7, B8, B9 |  Exploratory Skills, Technical & Vocational Skills |
 
 ---
 
