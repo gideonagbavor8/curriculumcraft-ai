@@ -136,7 +136,7 @@ export default function SavedPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Link
-                      href={`/lesson-builder?code=${lesson.indicatorCode}`}
+                      href={`/saved/${lesson.id}`}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/40 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 text-xs font-medium hover:bg-green-100 dark:hover:bg-green-900/60 transition-all"
                     >
                       <BookOpen size={12} />

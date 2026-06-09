@@ -28,69 +28,76 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch strands for this subject
-    const subjectStrands = await db
-      .select()
-      .from(strands)
-      .where(eq(strands.subjectId, subject.id));
-
-    // For each strand, fetch sub-strands and indicators
-    const strandsWithData = await Promise.all(
-      subjectStrands.map(async (strand) => {
-        const strandSubStrands = await db
-          .select()
-          .from(subStrands)
-          .where(eq(subStrands.strandId, strand.id));
-
-        const subStrandsWithIndicators = await Promise.all(
-          strandSubStrands.map(async (subStrand) => {
-            let indicatorQuery = db
-              .select()
-              .from(indicators)
-              .where(eq(indicators.subStrandId, subStrand.id));
-
-            const strandIndicators = await indicatorQuery;
-
-            // Filter by grade if provided
-            const filtered = grade
-              ? strandIndicators.filter((ind) => ind.grade === grade)
-              : strandIndicators;
-
-            return {
-              name: subStrand.name,
-              indicators: filtered.map((ind) => ({
-                code: ind.code,
-                text: ind.text,
-                bloomsLevel: ind.bloomsLevel,
-                grade: ind.grade,
-              })),
-            };
-          })
-        );
-
-        // Only return sub-strands that have indicators
-        const nonEmpty = subStrandsWithIndicators.filter(
-          (ss) => ss.indicators.length > 0
-        );
-
-        return {
-          name: strand.name,
-          subStrands: nonEmpty,
-        };
+    // Single query — fetch everything at once using joins
+    const rows = await db
+      .select({
+        strandId: strands.id,
+        strandName: strands.name,
+        subStrandId: subStrands.id,
+        subStrandName: subStrands.name,
+        indicatorCode: indicators.code,
+        indicatorText: indicators.text,
+        indicatorBlooms: indicators.bloomsLevel,
+        indicatorGrade: indicators.grade,
       })
-    );
+      .from(strands)
+      .innerJoin(subStrands, eq(subStrands.strandId, strands.id))
+      .innerJoin(indicators, eq(indicators.subStrandId, subStrands.id))
+      .where(
+        grade
+          ? eq(strands.subjectId, subject.id) && eq(indicators.grade, grade) as never
+          : eq(strands.subjectId, subject.id)
+      );
 
-    // Only return strands that have sub-strands with indicators
-    const nonEmptyStrands = strandsWithData.filter(
-      (s) => s.subStrands.length > 0
-    );
+    // Filter by grade in JS — more reliable than complex SQL
+    const filtered = grade
+      ? rows.filter((r) => r.indicatorGrade === grade)
+      : rows;
+
+    // Group into nested structure
+    const strandsMap = new Map<string, {
+      name: string;
+      subStrands: Map<string, {
+        name: string;
+        indicators: { code: string; text: string; bloomsLevel: string; grade: string }[];
+      }>;
+    }>();
+
+    for (const row of filtered) {
+      if (!strandsMap.has(row.strandId)) {
+        strandsMap.set(row.strandId, {
+          name: row.strandName,
+          subStrands: new Map(),
+        });
+      }
+      const strandEntry = strandsMap.get(row.strandId)!;
+
+      if (!strandEntry.subStrands.has(row.subStrandId)) {
+        strandEntry.subStrands.set(row.subStrandId, {
+          name: row.subStrandName,
+          indicators: [],
+        });
+      }
+      strandEntry.subStrands.get(row.subStrandId)!.indicators.push({
+        code: row.indicatorCode,
+        text: row.indicatorText,
+        bloomsLevel: row.indicatorBlooms,
+        grade: row.indicatorGrade,
+      });
+    }
+
+    // Convert Maps to arrays
+    const result = Array.from(strandsMap.values()).map((strand) => ({
+      name: strand.name,
+      subStrands: Array.from(strand.subStrands.values()),
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
         subject: subject.name,
         grade: grade || "all",
-        strands: nonEmptyStrands,
+        strands: result,
       },
     });
   } catch (error) {

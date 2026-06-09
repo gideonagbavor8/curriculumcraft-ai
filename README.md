@@ -59,9 +59,43 @@ Generate 5 multiple-choice questions (with interactive answer checking and expla
 
 ## Microsoft IQ Integration
 
-This project integrates **Microsoft Foundry IQ** as the intelligence grounding layer. Before generating lesson materials, the app queries the Foundry IQ endpoint to retrieve grounded NaCCA curriculum context, reducing hallucination and ensuring generated content is anchored in the actual curriculum standards.
+This project integrates **Microsoft Foundry IQ** as the intelligence grounding layer for the Creative Apps track requirement.
 
-**Foundry Project**: `proj-default` on `hub-agents-league.services.ai.azure.com`
+### Architecture
+Before generating lesson materials, the app queries the Microsoft Foundry IQ endpoint to retrieve grounded NaCCA curriculum context. This grounds the AI generation in actual curriculum standards, reducing hallucination and ensuring generated content is anchored to the real NaCCA SBC indicators.
+
+### Implementation
+The Foundry IQ integration is fully implemented in `app/api/generate/route.ts`:
+
+```ts
+// Foundry IQ grounding — retrieves relevant NaCCA context
+async function getFoundryContext(
+  indicatorCode: string,
+  indicatorText: string,
+  subject: string
+): Promise<string | null>
+```
+
+The integration:
+- Calls the Agents League Foundry IQ hub endpoint
+- Requests curriculum-specific context for the selected NaCCA indicator
+- Passes the grounded context to the generation layer as additional prompt context
+- Gracefully falls back to direct generation if the endpoint is unavailable
+
+### Foundry IQ Endpoint
+- **Hub**: `hub-agents-league.services.ai.azure.com`
+- **Project**: `proj-default`
+- **Endpoint**: `https://hub-agents-league.services.ai.azure.com/api/projects/proj-default`
+
+### Environment Variables Required
+```env
+AZURE_FOUNDRY_ENDPOINT=https://hub-agents-league.services.ai.azure.com/api/projects/proj-default
+AZURE_FOUNDRY_API_KEY=your_foundry_api_key_here
+AZURE_FOUNDRY_PROJECT_ID=proj-default
+```
+
+### Note on Quota
+The Agents League Foundry hub operates with shared quota across all hackathon participants. During periods of high demand or quota exhaustion, the app gracefully degrades to direct generation while maintaining full functionality. The Foundry IQ integration code remains active and will utilize grounding when quota is available.
 
 ---
 
