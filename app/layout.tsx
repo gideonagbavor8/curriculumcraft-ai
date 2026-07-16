@@ -9,7 +9,8 @@ import { Analytics } from "@vercel/analytics/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CurriculumCraft AI — Ghana NaCCA Lesson Builder",
+  title: "🪄 CurriculumCraft AI — Magical NaCCA Lesson Forge",
+  
   description:
     "AI-powered instructional design platform for Ghanaian JHS teachers. Transform NaCCA curriculum standards into complete lesson materials instantly.",
 };
