@@ -1,8 +1,10 @@
 # CurriculumCraft AI 🇬🇭
 
+![Microsoft Agents League Hackathon Winner Badge](./assets/microsoft-agents-league-winner-badge.jpeg)
+
 > An AI-powered instructional design platform that helps Ghanaian JHS teachers instantly transform NaCCA Standards-Based Curriculum indicators into fully scaffolded lesson materials, visual content prompts, and interactive student activities.
 
-**Built for the Microsoft Agents League Hackathon — Creative Apps Track**
+🏆 **Top Student Winner — Microsoft Agents League Hackathon (Creative Apps Track)**
 
 🔗 **Live Demo**: [curriculumcraft-ai.vercel.app](https://curriculumcraft-ai.vercel.app)
 
