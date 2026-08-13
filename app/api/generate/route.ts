@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateWithClaude } from "@/lib/claude";
+import { generateWithClaude, foundryRoot, CLAUDE_MODEL } from "@/lib/claude";
 import {
   LESSON_SYSTEM_PROMPT,
   buildLessonUserPrompt,
@@ -19,35 +19,44 @@ async function getFoundryContext(
     if (!endpoint || !apiKey) return { context: null, citation: null };
 
     // Call Foundry IQ to retrieve grounded curriculum context
-    const response = await fetch(`${endpoint}/inference/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": apiKey,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a NaCCA Ghana curriculum expert. Provide concise, accurate context about the curriculum standard requested. Focus on what the standard requires, common teaching approaches, and key concepts. Keep response under 200 words.",
-          },
-          {
-            role: "user",
-            content: `Provide curriculum context for this NaCCA Ghana JHS indicator:
+    const response = await fetch(
+      `${foundryRoot(endpoint)}/openai/v1/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a NaCCA Ghana curriculum expert. Provide concise, accurate context about the curriculum standard requested. Focus on what the standard requires, common teaching approaches, and key concepts. Keep response under 200 words.",
+            },
+            {
+              role: "user",
+              content: `Provide curriculum context for this NaCCA Ghana JHS indicator:
 Subject: ${subject}
 Code: ${indicatorCode}
 Indicator: ${indicatorText}
 
 What are the key concepts, teaching considerations, and expected student outcomes for this standard?`,
-          },
-        ],
-        max_tokens: 300,
-      }),
-    });
+            },
+          ],
+          max_tokens: 300,
+        }),
+      }
+    );
 
-    if (!response.ok) return { context: null, citation: null };
+    if (!response.ok) {
+      // Surface the reason instead of silently dropping grounding + citations.
+      console.warn(
+        `Foundry IQ grounding failed (${response.status}): ${(await response.text()).slice(0, 300)}`
+      );
+      return { context: null, citation: null };
+    }
 
     const data = await response.json();
     const context = data.choices?.[0]?.message?.content || null;

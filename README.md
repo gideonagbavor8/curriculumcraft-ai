@@ -166,11 +166,15 @@ Visit `http://localhost:3000`
 
 ```env
 DATABASE_URL=your_neon_connection_string
-GITHUB_MODELS_TOKEN=your_github_pat_with_models_permission
 AZURE_FOUNDRY_ENDPOINT=your_foundry_project_endpoint
 AZURE_FOUNDRY_API_KEY=your_foundry_api_key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+Generation runs on Azure AI Foundry through its OpenAI-compatible endpoint
+(`{resource}/openai/v1`). The model named in `lib/claude.ts` must be **deployed**
+on that resource — a model can appear in the Foundry catalogue and still return
+`DeploymentNotFound` if nobody has deployed it.
 
 ---
 
