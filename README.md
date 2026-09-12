@@ -2,7 +2,7 @@
 
 ![Microsoft Agents League Hackathon Winner Badge](./assets/microsoft-agents-league-winner-badge.jpg)
 
-> An AI-powered instructional design platform that helps Ghanaian JHS teachers instantly transform NaCCA Standards-Based Curriculum indicators into fully scaffolded lesson materials, visual content prompts, and interactive student activities.
+> An AI-powered instructional design platform for Ghanaian Primary and JHS teachers that transforms NaCCA Standards-Based Curriculum indicators into scaffolded lesson materials, visual content prompts, and interactive student activities.
 
 🏆 **Top Student Winner — Microsoft Agents League Hackathon (Creative Apps Track)**
 
@@ -156,11 +156,18 @@ npm run db:push
 # Seed NaCCA curriculum data
 npm run db:seed
 
+# Import an authoritative CSV or JSON curriculum release
+npm run curriculum:import -- path/to/curriculum.csv
+
 # Start development server
 npm run dev
 ```
 
 Visit `http://localhost:3000`
+
+See [Curriculum Architecture](./docs/curriculum-architecture.md) for the data model,
+import contract, exemplar CSV/JSON examples, API behavior, and production migration
+sequence.
 
 ### Environment Variables
 

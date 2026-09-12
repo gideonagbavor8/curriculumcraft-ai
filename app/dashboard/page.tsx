@@ -9,12 +9,15 @@ import {
   Loader2,
   Search,
 } from "lucide-react";
+import { useCurriculumCatalog } from "@/components/curriculum/useCurriculumCatalog";
+import type { IndicatorExemplar } from "@/types/curriculum";
 
 interface Indicator {
   code: string;
   text: string;
   bloomsLevel: string;
   grade: string;
+  exemplars: IndicatorExemplar[];
 }
 
 interface SubStrand {
@@ -26,18 +29,6 @@ interface Strand {
   name: string;
   subStrands: SubStrand[];
 }
-
-const SUBJECTS = [
-  { label: "Mathematics", slug: "mathematics" },
-  { label: "Science", slug: "science" },
-  { label: "English Language", slug: "english-language" },
-  { label: "Computing", slug: "computing" },
-  { label: "Social Studies", slug: "social-studies" },
-  { label: "RME", slug: "rme" },
-  { label: "Career Technology", slug: "career-technology" },
-];
-
-const GRADES = ["B7", "B8", "B9"];
 
 const BLOOMS_COLORS: Record<string, string> = {
   Remember: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600",
@@ -183,11 +174,14 @@ function StrandSection({
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { catalog, error: catalogError } = useCurriculumCatalog();
+  const [levelCode, setLevelCode] = useState("JHS");
   const [subject, setSubject] = useState("mathematics");
   const [grade, setGrade] = useState("B7");
   const [strands, setStrands] = useState<Strand[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const currentLevel = catalog?.levels.find((level) => level.code === levelCode);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +190,9 @@ export default function DashboardPage() {
       setLoading(true);
       setStrands([]);
       try {
-        const res = await fetch(`/api/curriculum?subject=${subject}&grade=${grade}`);
+        const res = await fetch(
+          `/api/curriculum?subject=${subject}&level=${levelCode}&grade=${grade}`
+        );
         const data = await res.json();
         if (!cancelled && data.success) setStrands(data.data.strands);
       } catch (err) {
@@ -209,7 +205,7 @@ export default function DashboardPage() {
     load();
 
     return () => { cancelled = true; };
-  }, [subject, grade]);
+  }, [subject, levelCode, grade]);
 
   const handleBuildLesson = (
     ind: Indicator,
@@ -217,12 +213,20 @@ export default function DashboardPage() {
     strand: string,
     subStrand: string
   ) => {
-    const subjectLabel = SUBJECTS.find((s) => s.slug === subjectSlug)?.label || subjectSlug;
+    const subjectLabel =
+      catalog?.subjects.find((item) => item.slug === subjectSlug)?.name || subjectSlug;
+    const gradeMetadata = currentLevel?.grades.find((item) => item.code === ind.grade);
     const params = new URLSearchParams({
       code: ind.code,
       text: ind.text,
       subject: subjectLabel,
+      subjectSlug,
       grade: ind.grade,
+      curriculumSlug: catalog?.curriculum.slug ?? "ghana-nacca-sbc",
+      levelCode,
+      levelName: currentLevel?.name ?? levelCode,
+      gradeName: gradeMetadata?.name ?? ind.grade,
+      exemplarRevision: ind.exemplars[0]?.revision ?? "",
       strand,
       subStrand,
       bloomsLevel: ind.bloomsLevel,
@@ -253,7 +257,8 @@ export default function DashboardPage() {
     0
   );
 
-  const subjectLabel = SUBJECTS.find((s) => s.slug === subject)?.label || subject;
+  const subjectLabel =
+    catalog?.subjects.find((item) => item.slug === subject)?.name || subject;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -264,7 +269,9 @@ export default function DashboardPage() {
             <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-sm">
               NaCCA SBC
             </span>
-            <span className="text-xs text-white/70">Ghana JHS</span>
+            <span className="text-xs text-white/70">
+              Ghana {currentLevel?.name ?? "JHS"}
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-white">Standard Map</h1>
           <p className="text-green-100 text-sm mt-1">
@@ -276,7 +283,31 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-4xl px-4 py-6 space-y-5">
         {/* Filters */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5">
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                Level
+              </label>
+              <select
+                value={levelCode}
+                title="Education level"
+                onChange={(event) => {
+                  const nextLevel = catalog?.levels.find(
+                    (level) => level.code === event.target.value
+                  );
+                  setLevelCode(event.target.value);
+                  setGrade(nextLevel?.grades[0]?.code ?? "");
+                }}
+                disabled={!catalog}
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-60"
+              >
+                {catalog?.levels.map((level) => (
+                  <option key={level.code} value={level.code}>
+                    {level.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
                 Subject
@@ -287,9 +318,9 @@ export default function DashboardPage() {
                 onChange={(e) => setSubject(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
               >
-                {SUBJECTS.map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.label}
+                {catalog?.subjects.map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {item.name}
                   </option>
                 ))}
               </select>
@@ -304,14 +335,18 @@ export default function DashboardPage() {
                 onChange={(e) => setGrade(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
               >
-                {GRADES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
+                {currentLevel?.grades.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.name} ({item.code})
                   </option>
                 ))}
               </select>
             </div>
           </div>
+
+          {catalogError && (
+            <p className="mb-4 text-sm text-red-600">{catalogError}</p>
+          )}
 
           {/* Search */}
           <div className="relative">
@@ -371,7 +406,9 @@ export default function DashboardPage() {
           </div>
         ) : filteredStrands.length === 0 ? (
           <div className="text-center py-16 text-gray-400 text-sm">
-            No indicators found matching your search.
+            {search
+              ? "No indicators found matching your search."
+              : `No ${currentLevel?.name ?? levelCode} curriculum indicators have been imported for ${grade} yet.`}
           </div>
         ) : (
           <div className="space-y-3">

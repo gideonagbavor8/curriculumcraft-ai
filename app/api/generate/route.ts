@@ -5,6 +5,7 @@ import {
   buildLessonUserPrompt,
 } from "@/prompts/lesson";
 import type { GenerateRequest, GenerateResponse, Citation } from "@/types/curriculum";
+import { getIndicatorExemplars } from "@/lib/curriculum/exemplars";
 
 // Foundry IQ grounding - retrieves relevant NaCCA context with citations
 async function getFoundryContext(
@@ -37,7 +38,7 @@ async function getFoundryContext(
             },
             {
               role: "user",
-              content: `Provide curriculum context for this NaCCA Ghana JHS indicator:
+              content: `Provide curriculum context for this NaCCA Ghana curriculum indicator:
 Subject: ${subject}
 Code: ${indicatorCode}
 Indicator: ${indicatorText}
@@ -114,6 +115,12 @@ export async function POST(request: NextRequest) {
       duration,
       classSize,
       difficultyLevel,
+      levelName,
+      gradeName,
+      typicalAgeMin,
+      typicalAgeMax,
+      curriculumSlug,
+      exemplarRevision,
     } = body;
 
     // Validate required fields
@@ -125,11 +132,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Try to get Foundry IQ grounding context with citation
-    const { context: foundryContext, citation } = await getFoundryContext(
-      indicatorCode,
-      indicatorText,
-      subject
-    );
+    const [{ context: foundryContext }, exemplars] = await Promise.all([
+      getFoundryContext(indicatorCode, indicatorText, subject),
+      getIndicatorExemplars({
+        indicatorCode,
+        subject,
+        grade,
+        strand,
+        subStrand,
+        curriculumSlug,
+        revision: exemplarRevision,
+      }),
+    ]);
 
     // Create citation even if Foundry IQ call fails (for demo/fallback)
     const demoCitation: Citation = {
@@ -158,6 +172,11 @@ export async function POST(request: NextRequest) {
       classSize: classSize || "35",
       difficultyLevel: difficultyLevel || "average",
       foundryContext: foundryContext || undefined,
+      levelName,
+      gradeName,
+      typicalAgeMin,
+      typicalAgeMax,
+      exemplars,
     });
 
     // Step 3: Generate with Claude
@@ -180,7 +199,15 @@ export async function POST(request: NextRequest) {
       grade,
       strand,
       difficultyLevel: difficultyLevel || "average",
-      citations: [demoCitation],
+      citations: [
+        demoCitation,
+        ...exemplars.map((exemplar) => ({
+          id: `exemplar-${indicatorCode}-${exemplar.revision}-${exemplar.code}`,
+          text: `NaCCA Exemplar ${exemplar.code}`,
+          source: exemplar.sourceReference || `NaCCA curriculum revision ${exemplar.revision}`,
+          type: "curriculum" as const,
+        })),
+      ],
       foundryContext: foundryContext || undefined,
     };
 

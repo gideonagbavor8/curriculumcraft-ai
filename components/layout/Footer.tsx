@@ -18,11 +18,11 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-4">
-              AI-powered instructional design for Ghanaian JHS teachers. Built on the NaCCA Standards-Based Curriculum.
+              AI-powered instructional design for Ghanaian Primary and JHS teachers. Built on the NaCCA Standards-Based Curriculum.
             </p>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                🇬🇭 Ghana JHS
+                🇬🇭 Ghana Primary & JHS
               </span>
               <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700">
                 NaCCA SBC

@@ -2,6 +2,10 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 import * as dotenv from "dotenv";
+import {
+  DEFAULT_CURRICULUM_SLUG,
+  EDUCATION_LEVELS,
+} from "../lib/curriculum/catalog";
 
 dotenv.config({ path: ".env.local" });
 
@@ -341,11 +345,72 @@ const CURRICULUM = [
 async function main() {
   console.log("🌱 Seeding NaCCA curriculum data...");
 
+  const [curriculum] = await db
+    .insert(schema.curriculumFrameworks)
+    .values({
+      name: "Ghana NaCCA Standards-Based Curriculum",
+      slug: DEFAULT_CURRICULUM_SLUG,
+      countryCode: "GH",
+      authority: "NaCCA",
+      version: "SBC",
+    })
+    .onConflictDoUpdate({
+      target: schema.curriculumFrameworks.slug,
+      set: { updatedAt: new Date() },
+    })
+    .returning();
+
+  const gradeIds = new Map<string, string>();
+
+  for (const [levelIndex, levelData] of EDUCATION_LEVELS.entries()) {
+    const [level] = await db
+      .insert(schema.educationLevels)
+      .values({
+        curriculumId: curriculum.id,
+        code: levelData.code,
+        name: levelData.name,
+        sortOrder: levelIndex + 1,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.educationLevels.curriculumId,
+          schema.educationLevels.code,
+        ],
+        set: { name: levelData.name, sortOrder: levelIndex + 1 },
+      })
+      .returning();
+
+    for (const [gradeIndex, gradeData] of levelData.grades.entries()) {
+      const [grade] = await db
+        .insert(schema.grades)
+        .values({
+          educationLevelId: level.id,
+          code: gradeData.code,
+          name: gradeData.name,
+          sortOrder: gradeIndex + 1,
+          typicalAgeMin: gradeData.typicalAgeMin,
+          typicalAgeMax: gradeData.typicalAgeMax,
+        })
+        .onConflictDoUpdate({
+          target: [schema.grades.educationLevelId, schema.grades.code],
+          set: {
+            name: gradeData.name,
+            sortOrder: gradeIndex + 1,
+            typicalAgeMin: gradeData.typicalAgeMin,
+            typicalAgeMax: gradeData.typicalAgeMax,
+          },
+        })
+        .returning();
+
+      gradeIds.set(grade.code, grade.id);
+    }
+  }
+
   for (const entry of CURRICULUM) {
     // Insert subject
     const [subject] = await db
       .insert(schema.subjects)
-      .values(entry.subject)
+      .values({ ...entry.subject, curriculumId: curriculum.id })
       .onConflictDoNothing()
       .returning();
 
@@ -376,6 +441,12 @@ async function main() {
 
         // Insert indicators
         for (const ind of subStrandData.indicators) {
+          const gradeId = gradeIds.get(ind.grade);
+
+          if (!gradeId) {
+            throw new Error(`Unknown grade code in seed data: ${ind.grade}`);
+          }
+
           await db
             .insert(schema.indicators)
             .values({
@@ -383,6 +454,7 @@ async function main() {
               code: ind.code,
               text: ind.text,
               bloomsLevel: ind.bloomsLevel,
+              gradeId,
               grade: ind.grade,
             })
             .onConflictDoNothing();

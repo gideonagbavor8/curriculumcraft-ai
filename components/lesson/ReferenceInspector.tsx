@@ -150,7 +150,9 @@ export default function ReferenceInspector({
                 </div>
                 <div>
                   <span className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-0.5">GRADE</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">Junior High ({grade})</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {grade.startsWith("P") ? "Primary" : "Junior High"} ({grade})
+                  </span>
                 </div>
               </div>
               <div>

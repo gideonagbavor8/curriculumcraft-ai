@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const subject = searchParams.get("subject");
     const grade = searchParams.get("grade");
 
-    let query = db
+    const query = db
       .select()
       .from(savedLessons)
       .orderBy(desc(savedLessons.createdAt));
@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
       indicatorCode,
       subject,
       grade,
+      curriculumSlug,
+      levelCode,
       strand,
       subStrand,
       teacherNotes,
@@ -80,6 +82,8 @@ export async function POST(request: NextRequest) {
         indicatorCode,
         subject,
         grade,
+        curriculumSlug: curriculumSlug || "ghana-nacca-sbc",
+        levelCode: levelCode || (grade.startsWith("P") ? "PRIMARY" : "JHS"),
         strand,
         subStrand: subStrand || strand,
         teacherNotes,

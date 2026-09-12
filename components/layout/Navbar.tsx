@@ -19,12 +19,16 @@ export default function Navbar() {
 
   // On mount, read saved theme preference
   useEffect(() => {
-    setMounted(true);
-    const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = stored === "dark" || (!stored && prefersDark);
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
+    const frame = window.requestAnimationFrame(() => {
+      setMounted(true);
+      const stored = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const isDark = stored === "dark" || (!stored && prefersDark);
+      setDark(isDark);
+      document.documentElement.classList.toggle("dark", isDark);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   // Fetch saved lessons count — defined outside effect to reuse
@@ -82,7 +86,7 @@ export default function Navbar() {
                 CurriculumCraft AI
               </span>
               <span className="text-[10px] text-green-600 dark:text-green-400 font-medium tracking-wide">
-                🇬🇭 NaCCA SBC · Ghana JHS
+                🇬🇭 NaCCA SBC · Primary & JHS
               </span>
             </div>
           </Link>
@@ -136,14 +140,14 @@ export default function Navbar() {
         </div>
 
         {/* Mobile nav */}
-        <div className="flex md:hidden gap-1 pb-3 overflow-x-auto scrollbar-hide">
+        <div className="grid grid-cols-3 md:hidden gap-1 pb-3">
             {NAV_LINKS.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href;
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                  className={`flex min-w-0 items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
                     isActive
                       ? "bg-green-700 text-white"
                       : "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-900/40 hover:text-green-800"

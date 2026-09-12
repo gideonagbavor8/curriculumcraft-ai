@@ -11,7 +11,15 @@ interface SelectedIndicator {
   text: string;
   bloomsLevel: string;
   grade: string;
+  curriculumSlug?: string;
+  levelCode?: string;
+  levelName?: string;
+  gradeName?: string;
+  typicalAgeMin?: number;
+  typicalAgeMax?: number;
+  exemplarRevision?: string;
   subject: string;
+  subjectSlug?: string;
   strand: string;
   subStrand: string;
 }
@@ -145,7 +153,15 @@ export default function ActivitySuitePage() {
           indicatorText: selectedIndicator.text,
           subject: selectedIndicator.subject,
           grade: selectedIndicator.grade,
+          curriculumSlug: selectedIndicator.curriculumSlug,
+          levelCode: selectedIndicator.levelCode,
+          levelName: selectedIndicator.levelName,
+          gradeName: selectedIndicator.gradeName,
+          typicalAgeMin: selectedIndicator.typicalAgeMin,
+          typicalAgeMax: selectedIndicator.typicalAgeMax,
+          exemplarRevision: selectedIndicator.exemplarRevision,
           strand: selectedIndicator.strand,
+          subStrand: selectedIndicator.subStrand,
           bloomsLevel: selectedIndicator.bloomsLevel,
         }),
       });
@@ -165,7 +181,9 @@ export default function ActivitySuitePage() {
         <div className="mx-auto max-w-4xl">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full">NaCCA SBC</span>
-            <span className="text-xs text-white/70">Ghana JHS</span>
+            <span className="text-xs text-white/70">
+              Ghana {selectedIndicator?.levelName ?? "Primary & JHS"}
+            </span>
           </div>
           <h1 className="text-2xl font-bold text-white">Interactive Activity Suite</h1>
           <p className="text-green-100 text-sm mt-1">Generate MCQs, writing prompts and assessment rubrics from any NaCCA indicator</p>

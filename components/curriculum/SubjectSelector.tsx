@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useCurriculumCatalog } from "./useCurriculumCatalog";
+import type { IndicatorExemplar } from "@/types/curriculum";
 
 interface Indicator {
   code: string;
   text: string;
   bloomsLevel: string;
   grade: string;
+  exemplars: IndicatorExemplar[];
 }
 
 interface SubStrand {
@@ -25,26 +28,24 @@ interface SelectedIndicator {
   text: string;
   bloomsLevel: string;
   grade: string;
+  curriculumSlug?: string;
+  levelCode?: string;
+  levelName?: string;
+  gradeName?: string;
+  typicalAgeMin?: number;
+  typicalAgeMax?: number;
+  exemplars?: IndicatorExemplar[];
+  exemplarRevision?: string;
   subject: string;
+  subjectSlug?: string;
   strand: string;
   subStrand: string;
 }
 
 interface SubjectSelectorProps {
   onSelect: (indicator: SelectedIndicator) => void;
+  initialSelection?: SelectedIndicator | null;
 }
-
-const SUBJECTS = [
-  { label: "Mathematics", slug: "mathematics" },
-  { label: "Science", slug: "science" },
-  { label: "English Language", slug: "english-language" },
-  { label: "Computing", slug: "computing" },
-  { label: "Social Studies", slug: "social-studies" },
-  { label: "RME", slug: "rme" },
-  { label: "Career Technology", slug: "career-technology" },
-];
-
-const GRADES = ["B7", "B8", "B9"];
 
 const BLOOMS_COLORS: Record<string, string> = {
   Remember: "bg-gray-100 text-gray-700",
@@ -55,13 +56,26 @@ const BLOOMS_COLORS: Record<string, string> = {
   Create: "bg-pink-100 text-pink-700",
 };
 
-export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
-  const [subject, setSubject] = useState("mathematics");
-  const [grade, setGrade] = useState("B7");
+export default function SubjectSelector({
+  onSelect,
+  initialSelection,
+}: SubjectSelectorProps) {
+  const { catalog, error: catalogError } = useCurriculumCatalog();
+  const [levelCode, setLevelCode] = useState(initialSelection?.levelCode ?? "JHS");
+  const [subject, setSubject] = useState(
+    initialSelection?.subjectSlug ?? "mathematics"
+  );
+  const [grade, setGrade] = useState(initialSelection?.grade ?? "B7");
   const [strands, setStrands] = useState<Strand[]>([]);
-  const [selectedStrand, setSelectedStrand] = useState<string>("");
-  const [selectedIndicatorCode, setSelectedIndicatorCode] = useState<string>("");
+  const [selectedStrand, setSelectedStrand] = useState<string>(
+    initialSelection?.strand ?? ""
+  );
+  const [selectedIndicatorCode, setSelectedIndicatorCode] = useState<string>(
+    initialSelection?.code ?? ""
+  );
   const [loading, setLoading] = useState(true);
+  const currentLevel = catalog?.levels.find((level) => level.code === levelCode);
+  const currentGrade = currentLevel?.grades.find((item) => item.code === grade);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,11 +83,11 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
     const load = async () => {
       setLoading(true);
       setStrands([]);
-      setSelectedStrand("");
-      setSelectedIndicatorCode("");
+      setSelectedStrand(initialSelection?.strand ?? "");
+      setSelectedIndicatorCode(initialSelection?.code ?? "");
       try {
         const res = await fetch(
-          `/api/curriculum?subject=${subject}&grade=${grade}`
+          `/api/curriculum?subject=${subject}&level=${levelCode}&grade=${grade}`
         );
         const data = await res.json();
         if (!cancelled && data.success && data.data.strands) {
@@ -91,7 +105,7 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
     return () => {
       cancelled = true;
     };
-  }, [subject, grade]);
+  }, [subject, levelCode, grade, initialSelection]);
 
   const currentStrand = strands.find((s) => s.name === selectedStrand);
   const allIndicators = currentStrand
@@ -103,13 +117,22 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
   const handleIndicatorSelect = (ind: Indicator & { subStrand: string }) => {
     setSelectedIndicatorCode(ind.code);
     const subjectLabel =
-      SUBJECTS.find((s) => s.slug === subject)?.label || subject;
+      catalog?.subjects.find((item) => item.slug === subject)?.name || subject;
     onSelect({
       code: ind.code,
       text: ind.text,
       bloomsLevel: ind.bloomsLevel,
       grade: ind.grade,
+      curriculumSlug: catalog?.curriculum.slug ?? "ghana-nacca-sbc",
+      levelCode,
+      levelName: currentLevel?.name ?? levelCode,
+      gradeName: currentGrade?.name ?? ind.grade,
+      typicalAgeMin: currentGrade?.typicalAgeMin ?? undefined,
+      typicalAgeMax: currentGrade?.typicalAgeMax ?? undefined,
+      exemplars: ind.exemplars,
+      exemplarRevision: ind.exemplars[0]?.revision,
       subject: subjectLabel,
+      subjectSlug: subject,
       strand: selectedStrand,
       subStrand: ind.subStrand,
     });
@@ -117,8 +140,31 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
 
   return (
     <div className="space-y-4">
-      {/* Subject + Grade */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">
+            Level
+          </label>
+          <select
+            value={levelCode}
+            title="Education level"
+            onChange={(event) => {
+              const nextLevel = catalog?.levels.find(
+                (level) => level.code === event.target.value
+              );
+              setLevelCode(event.target.value);
+              setGrade(nextLevel?.grades[0]?.code ?? "");
+            }}
+            disabled={!catalog}
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-60"
+          >
+            {catalog?.levels.map((level) => (
+              <option key={level.code} value={level.code}>
+                {level.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1.5">
             Subject
@@ -129,9 +175,9 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
             onChange={(e) => setSubject(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
           >
-            {SUBJECTS.map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.label}
+            {catalog?.subjects.map((item) => (
+              <option key={item.slug} value={item.slug}>
+                {item.name}
               </option>
             ))}
           </select>
@@ -146,14 +192,18 @@ export default function SubjectSelector({ onSelect }: SubjectSelectorProps) {
             onChange={(e) => setGrade(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
           >
-            {GRADES.map((g) => (
-              <option key={g} value={g}>
-                {g}
+            {currentLevel?.grades.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.name} ({item.code})
               </option>
             ))}
           </select>
         </div>
       </div>
+
+      {catalogError && (
+        <p className="text-sm text-red-600">{catalogError}</p>
+      )}
 
       {/* Strand pills */}
       <div>

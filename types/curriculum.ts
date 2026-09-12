@@ -8,6 +8,33 @@ export type BloomsLevel =
 
 export type DifficultyLevel = "struggling" | "average" | "advanced";
 
+export interface CurriculumGrade {
+  code: string;
+  name: string;
+  sortOrder: number;
+  typicalAgeMin: number | null;
+  typicalAgeMax: number | null;
+}
+
+export interface EducationLevel {
+  code: string;
+  name: string;
+  sortOrder: number;
+  grades: CurriculumGrade[];
+}
+
+export interface CurriculumCatalog {
+  curriculum: {
+    name: string;
+    slug: string;
+    countryCode: string;
+    authority: string;
+    version: string;
+  };
+  levels: EducationLevel[];
+  subjects: Pick<Subject, "id" | "name" | "slug">[];
+}
+
 export interface Subject {
   id: string;
   name: string;
@@ -34,6 +61,15 @@ export interface Indicator {
   text: string;
   bloomsLevel: BloomsLevel;
   grade: string;
+  exemplars: IndicatorExemplar[];
+}
+
+export interface IndicatorExemplar {
+  code: string;
+  text: string;
+  sortOrder: number;
+  revision: string;
+  sourceReference?: string | null;
 }
 
 export interface SavedLesson {
@@ -52,7 +88,10 @@ export interface SavedLesson {
 
 export interface CurriculumSubStrand {
   name: string;
-  indicators: Pick<Indicator, "code" | "text" | "bloomsLevel">[];
+  indicators: Pick<
+    Indicator,
+    "code" | "text" | "bloomsLevel" | "grade" | "exemplars"
+  >[];
 }
 
 export interface CurriculumStrand {
@@ -71,6 +110,14 @@ export interface GenerateRequest {
   indicatorText: string;
   subject: string;
   grade: string;
+  curriculumSlug?: string;
+  levelCode?: string;
+  levelName?: string;
+  gradeName?: string;
+  typicalAgeMin?: number;
+  typicalAgeMax?: number;
+  exemplars?: IndicatorExemplar[];
+  exemplarRevision?: string;
   strand: string;
   subStrand: string;
   bloomsLevel: BloomsLevel;

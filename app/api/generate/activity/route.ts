@@ -5,13 +5,27 @@ import {
   buildActivityUserPrompt,
 } from "@/prompts/activity";
 import type { ActivityResponse } from "@/types/curriculum";
+import { getIndicatorExemplars } from "@/lib/curriculum/exemplars";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { indicatorCode, indicatorText, subject, grade, strand, bloomsLevel } =
-      body;
+    const {
+      indicatorCode,
+      indicatorText,
+      subject,
+      grade,
+      strand,
+      subStrand,
+      bloomsLevel,
+      levelName,
+      gradeName,
+      typicalAgeMin,
+      typicalAgeMax,
+      curriculumSlug,
+      exemplarRevision,
+    } = body;
 
     if (!indicatorCode || !indicatorText || !subject || !grade) {
       return NextResponse.json(
@@ -20,6 +34,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const exemplars = await getIndicatorExemplars({
+      indicatorCode,
+      subject,
+      grade,
+      strand,
+      subStrand,
+      curriculumSlug,
+      revision: exemplarRevision,
+    });
+
     const userPrompt = buildActivityUserPrompt({
       indicatorCode,
       indicatorText,
@@ -27,6 +51,11 @@ export async function POST(request: NextRequest) {
       grade,
       strand,
       bloomsLevel,
+      levelName,
+      gradeName,
+      typicalAgeMin,
+      typicalAgeMax,
+      exemplars,
     });
 
     const rawResponse = await generateWithClaude(

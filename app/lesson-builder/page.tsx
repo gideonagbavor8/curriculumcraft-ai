@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader2, Save, Printer, CheckCircle, Download, FileText, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
@@ -17,7 +17,15 @@ interface SelectedIndicator {
   text: string;
   bloomsLevel: string;
   grade: string;
+  curriculumSlug?: string;
+  levelCode?: string;
+  levelName?: string;
+  gradeName?: string;
+  typicalAgeMin?: number;
+  typicalAgeMax?: number;
+  exemplarRevision?: string;
   subject: string;
+  subjectSlug?: string;
   strand: string;
   subStrand: string;
 }
@@ -89,6 +97,39 @@ export default function LessonBuilderPage() {
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const text = params.get("text");
+    const subject = params.get("subject");
+    const grade = params.get("grade");
+    const strand = params.get("strand");
+    const subStrand = params.get("subStrand");
+    const bloomsLevel = params.get("bloomsLevel");
+
+    if (code && text && subject && grade && strand && subStrand && bloomsLevel) {
+      const timeout = window.setTimeout(() => {
+        setSelectedIndicator({
+          code,
+          text,
+          subject,
+          subjectSlug: params.get("subjectSlug") ?? undefined,
+          grade,
+          strand,
+          subStrand,
+          bloomsLevel,
+          curriculumSlug: params.get("curriculumSlug") ?? undefined,
+          levelCode: params.get("levelCode") ?? undefined,
+          levelName: params.get("levelName") ?? undefined,
+          gradeName: params.get("gradeName") ?? undefined,
+          exemplarRevision: params.get("exemplarRevision") || undefined,
+        });
+      }, 0);
+
+      return () => window.clearTimeout(timeout);
+    }
+  }, []);
+
   // Pre-fill the form with demo data and immediately generate
   const loadDemo = () => {
     setSelectedIndicator(DEMO_INDICATOR);
@@ -124,6 +165,13 @@ export default function LessonBuilderPage() {
           indicatorText: indicator.text,
           subject: indicator.subject,
           grade: indicator.grade,
+          curriculumSlug: indicator.curriculumSlug,
+          levelCode: indicator.levelCode,
+          levelName: indicator.levelName,
+          gradeName: indicator.gradeName,
+          typicalAgeMin: indicator.typicalAgeMin,
+          typicalAgeMax: indicator.typicalAgeMax,
+          exemplarRevision: indicator.exemplarRevision,
           strand: indicator.strand,
           subStrand: indicator.subStrand,
           bloomsLevel: indicator.bloomsLevel,
@@ -162,6 +210,8 @@ export default function LessonBuilderPage() {
           indicatorCode: selectedIndicator.code,
           subject: selectedIndicator.subject,
           grade: selectedIndicator.grade,
+          curriculumSlug: selectedIndicator.curriculumSlug,
+          levelCode: selectedIndicator.levelCode,
           strand: selectedIndicator.strand,
           subStrand: selectedIndicator.subStrand,
           teacherNotes: result.teacherNotes,
@@ -210,7 +260,11 @@ export default function LessonBuilderPage() {
       pdf.text("CurriculumCraft AI", margin, 12);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
-      pdf.text("NaCCA Standards-Based Curriculum — Ghana JHS", margin, 20);
+      pdf.text(
+        `NaCCA Standards-Based Curriculum - Ghana ${selectedIndicator?.levelName ?? "JHS"}`,
+        margin,
+        20
+      );
       pdf.text(new Date().toLocaleDateString("en-GB"), pageW - margin, 20, { align: "right" });
 
       // Metadata strip
@@ -294,7 +348,9 @@ export default function LessonBuilderPage() {
           <div className="mx-auto max-w-4xl">
             <div className="flex items-center gap-2 mb-2 animate-fadeIn">
               <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full backdrop-blur-sm">NaCCA SBC</span>
-              <span className="text-xs text-white/70">Ghana JHS</span>
+              <span className="text-xs text-white/70">
+                Ghana {selectedIndicator?.levelName ?? "Primary & JHS"}
+              </span>
             </div>
             <h1 className="text-2xl font-bold text-white mb-1 animate-fadeIn-1">Lesson & Material Builder</h1>
             <p className="text-green-100 text-sm animate-fadeIn-2">Generate culturally relevant lesson materials aligned to NaCCA standards</p>
@@ -315,7 +371,11 @@ export default function LessonBuilderPage() {
                 Try Demo
               </button>
             </div>
-            <SubjectSelector onSelect={(ind) => { setSelectedIndicator(ind); setSaved(false); setResult(null); }} />
+            <SubjectSelector
+              key={selectedIndicator?.code ?? "empty"}
+              initialSelection={selectedIndicator}
+              onSelect={(ind) => { setSelectedIndicator(ind); setSaved(false); setResult(null); }}
+            />
 
             {selectedIndicator && (
               <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700 space-y-5">

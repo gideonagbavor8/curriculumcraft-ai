@@ -6,7 +6,7 @@ const FEATURES = [
     icon: LayoutDashboard,
     title: "Standard Map",
     description:
-      "Browse the full NaCCA curriculum tree. Explore every strand, sub-strand and indicator across B7–B9 for all subjects.",
+      "Browse the NaCCA curriculum tree across Primary 1–6 and JHS 1–3, with imported strands, sub-strands and indicators.",
     href: "/dashboard",
     color: "text-blue-600 dark:text-blue-300",
     bg: "bg-blue-50 dark:bg-blue-900/40",
@@ -37,7 +37,7 @@ const FEATURES = [
 
 const STATS = [
   { value: "7", label: "Subjects" },
-  { value: "3", label: "Grade levels" },
+  { value: "9", label: "Grade levels" },
   { value: "80+", label: "Indicators" },
   { value: "3", label: "AI-powered views" },
 ];
@@ -62,7 +62,7 @@ export default function HomePage() {
             <span className="text-green-300">Complete Lesson Materials</span>
           </h1>
           <p className="text-green-100 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-            AI-powered instructional design for Ghanaian JHS teachers. Generate
+            AI-powered instructional design for Ghanaian Primary and JHS teachers. Generate
             teacher notes, visual prompts and student activities from any NaCCA
             indicator in seconds.
           </p>

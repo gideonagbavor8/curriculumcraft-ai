@@ -1,0 +1,41 @@
+{
+  "records": [
+    {
+      "curriculumSlug": "ghana-nacca-sbc",
+      "curriculumName": "Ghana NaCCA Standards-Based Curriculum",
+      "countryCode": "GH",
+      "authority": "NaCCA",
+      "version": "2026",
+      "levelCode": "PRIMARY",
+      "levelName": "Primary",
+      "gradeCode": "P1",
+      "gradeName": "Primary 1",
+      "gradeSortOrder": 1,
+      "typicalAgeMin": 6,
+      "typicalAgeMax": 7,
+      "subjectSlug": "mathematics",
+      "subjectName": "Mathematics",
+      "strandName": "Number",
+      "subStrandName": "Counting",
+      "indicatorCode": "SAMPLE.P1.1.1.1",
+      "indicatorText": "Illustrative indicator text for import testing",
+      "bloomsLevel": "Remember",
+      "exemplars": [
+        {
+          "code": "EX-01",
+          "text": "Illustrative first exemplar",
+          "sortOrder": 1,
+          "revision": "2026",
+          "sourceReference": "Source document page 10"
+        },
+        {
+          "code": "EX-02",
+          "text": "Illustrative second exemplar",
+          "sortOrder": 2,
+          "revision": "2026",
+          "sourceReference": "Source document page 10"
+        }
+      ]
+    }
+  ]
+}
