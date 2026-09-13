@@ -15,8 +15,10 @@ import type { IndicatorExemplar } from "@/types/curriculum";
 interface Indicator {
   code: string;
   text: string;
-  bloomsLevel: string;
+  bloomsLevel: string | null;
   grade: string;
+  contentStandardCode?: string | null;
+  contentStandardText?: string | null;
   exemplars: IndicatorExemplar[];
 }
 
@@ -59,11 +61,13 @@ function IndicatorRow({
         <span className="text-[10px] font-bold px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-green-700 group-hover:text-white transition-colors flex-shrink-0">
           {indicator.code}
         </span>
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${
-          BLOOMS_COLORS[indicator.bloomsLevel] || "bg-gray-100 text-gray-600 border-gray-200"
-        }`}>
-          {indicator.bloomsLevel}
-        </span>
+        {indicator.bloomsLevel && (
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${
+            BLOOMS_COLORS[indicator.bloomsLevel] || "bg-gray-100 text-gray-600 border-gray-200"
+          }`}>
+            {indicator.bloomsLevel}
+          </span>
+        )}
         <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">
           {indicator.grade}
         </span>
@@ -72,6 +76,12 @@ function IndicatorRow({
       <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed mb-3">
         {indicator.text}
       </p>
+      {indicator.contentStandardText && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+          {indicator.contentStandardCode && `${indicator.contentStandardCode}: `}
+          {indicator.contentStandardText}
+        </p>
+      )}
       {/* Build lesson button — full width on mobile */}
       <button
         onClick={() => onBuild(indicator, subject, strand, subStrand)}
@@ -229,8 +239,8 @@ export default function DashboardPage() {
       exemplarRevision: ind.exemplars[0]?.revision ?? "",
       strand,
       subStrand,
-      bloomsLevel: ind.bloomsLevel,
     });
+    if (ind.bloomsLevel) params.set("bloomsLevel", ind.bloomsLevel);
     router.push(`/lesson-builder?${params.toString()}`);
   };
 

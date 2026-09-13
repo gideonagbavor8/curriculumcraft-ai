@@ -51,9 +51,11 @@ export async function POST(request: NextRequest) {
       levelCode,
       strand,
       subStrand,
+      lessonPlan,
       teacherNotes,
       visualPrompts,
       studentReading,
+      lessonHeader,
     } = body;
 
     // Validate all required fields
@@ -89,6 +91,8 @@ export async function POST(request: NextRequest) {
         teacherNotes,
         visualPrompts,
         studentReading,
+        lessonPlan: lessonPlan ?? null,
+        lessonHeader: lessonHeader ?? null,
       })
       .returning();
 

@@ -1,10 +1,11 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   curriculumFrameworks,
   educationLevels,
   grades,
+  gradeAliases,
   subjects,
 } from "@/db/schema";
 import { DEFAULT_CURRICULUM_SLUG } from "@/lib/curriculum/catalog";
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
           levelCode: educationLevels.code,
           levelName: educationLevels.name,
           levelSortOrder: educationLevels.sortOrder,
+          gradeId: grades.id,
           gradeCode: grades.code,
           gradeName: grades.name,
           gradeSortOrder: grades.sortOrder,
@@ -49,6 +51,19 @@ export async function GET(request: NextRequest) {
         .orderBy(asc(subjects.name)),
     ]);
 
+    const aliasRows = levelRows.length
+      ? await db
+          .select({ gradeId: gradeAliases.gradeId, alias: gradeAliases.alias })
+          .from(gradeAliases)
+          .where(
+            inArray(
+              gradeAliases.gradeId,
+              levelRows.map((row) => row.gradeId)
+            )
+          )
+      : [];
+    const aliasesByGrade = Map.groupBy(aliasRows, (row) => row.gradeId);
+
     const levels = Array.from(
       levelRows.reduce((map, row) => {
         const level = map.get(row.levelId) ?? {
@@ -60,13 +75,16 @@ export async function GET(request: NextRequest) {
         level.grades.push({
           code: row.gradeCode,
           name: row.gradeName,
+          aliases: (aliasesByGrade.get(row.gradeId) ?? []).map(
+            (alias) => alias.alias
+          ),
           sortOrder: row.gradeSortOrder,
           typicalAgeMin: row.typicalAgeMin,
           typicalAgeMax: row.typicalAgeMax,
         });
         map.set(row.levelId, level);
         return map;
-      }, new Map<string, { code: string; name: string; sortOrder: number; grades: { code: string; name: string; sortOrder: number; typicalAgeMin: number | null; typicalAgeMax: number | null }[] }>()).values()
+      }, new Map<string, { code: string; name: string; sortOrder: number; grades: { code: string; name: string; aliases: string[]; sortOrder: number; typicalAgeMin: number | null; typicalAgeMax: number | null }[] }>()).values()
     );
 
     return NextResponse.json({

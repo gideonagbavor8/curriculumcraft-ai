@@ -5,7 +5,7 @@ import {
   buildActivityUserPrompt,
 } from "@/prompts/activity";
 import type { ActivityResponse } from "@/types/curriculum";
-import { getIndicatorExemplars } from "@/lib/curriculum/exemplars";
+import { getIndicatorGrounding } from "@/lib/curriculum/exemplars";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const exemplars = await getIndicatorExemplars({
+    const grounding = await getIndicatorGrounding({
       indicatorCode,
       subject,
       grade,
@@ -43,19 +43,23 @@ export async function POST(request: NextRequest) {
       curriculumSlug,
       revision: exemplarRevision,
     });
+    const exemplars = grounding?.exemplars ?? [];
 
     const userPrompt = buildActivityUserPrompt({
       indicatorCode,
-      indicatorText,
+      indicatorText: grounding?.indicatorText ?? indicatorText,
       subject,
       grade,
       strand,
-      bloomsLevel,
+      bloomsLevel: grounding?.bloomsLevel ?? bloomsLevel,
       levelName,
       gradeName,
       typicalAgeMin,
       typicalAgeMax,
       exemplars,
+      contentStandardCode: grounding?.contentStandardCode,
+      contentStandardText: grounding?.contentStandardText,
+      guidance: grounding?.guidance,
     });
 
     const rawResponse = await generateWithClaude(

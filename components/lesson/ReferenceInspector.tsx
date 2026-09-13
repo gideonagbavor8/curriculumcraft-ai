@@ -13,7 +13,7 @@ interface ReferenceInspectorProps {
   grade: string;
   strand: string;
   subStrand?: string;
-  bloomsLevel?: string;
+  bloomsLevel?: string | null;
   foundryContext?: string;
 }
 
@@ -169,7 +169,7 @@ export default function ReferenceInspector({
           </div>
 
           {/* Bloom's taxonomy */}
-          <div className="space-y-3">
+          {bloomsLevel && <div className="space-y-3">
             <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               Cognitive Level Expectation
             </h4>
@@ -184,7 +184,7 @@ export default function ReferenceInspector({
                 {getBloomsExpectation(bloomsLevel)}
               </p>
             </div>
-          </div>
+          </div>}
 
           {/* Raw Foundry Context */}
           <div className="space-y-3">

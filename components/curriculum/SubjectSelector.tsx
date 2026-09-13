@@ -8,8 +8,10 @@ import type { IndicatorExemplar } from "@/types/curriculum";
 interface Indicator {
   code: string;
   text: string;
-  bloomsLevel: string;
+  bloomsLevel: string | null;
   grade: string;
+  contentStandardCode?: string | null;
+  contentStandardText?: string | null;
   exemplars: IndicatorExemplar[];
 }
 
@@ -26,7 +28,7 @@ interface Strand {
 interface SelectedIndicator {
   code: string;
   text: string;
-  bloomsLevel: string;
+  bloomsLevel: string | null;
   grade: string;
   curriculumSlug?: string;
   levelCode?: string;
@@ -36,6 +38,8 @@ interface SelectedIndicator {
   typicalAgeMax?: number;
   exemplars?: IndicatorExemplar[];
   exemplarRevision?: string;
+  contentStandardCode?: string;
+  contentStandardText?: string;
   subject: string;
   subjectSlug?: string;
   strand: string;
@@ -131,6 +135,8 @@ export default function SubjectSelector({
       typicalAgeMax: currentGrade?.typicalAgeMax ?? undefined,
       exemplars: ind.exemplars,
       exemplarRevision: ind.exemplars[0]?.revision,
+      contentStandardCode: ind.contentStandardCode ?? undefined,
+      contentStandardText: ind.contentStandardText ?? undefined,
       subject: subjectLabel,
       subjectSlug: subject,
       strand: selectedStrand,
@@ -269,14 +275,22 @@ export default function SubjectSelector({
                   <p className="text-sm text-gray-700 leading-relaxed">
                     {ind.text}
                   </p>
-                  <span
-                    className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                      BLOOMS_COLORS[ind.bloomsLevel] ||
-                      "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {ind.bloomsLevel}
-                  </span>
+                  {ind.contentStandardText && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {ind.contentStandardCode && `${ind.contentStandardCode}: `}
+                      {ind.contentStandardText}
+                    </p>
+                  )}
+                  {ind.bloomsLevel && (
+                    <span
+                      className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                        BLOOMS_COLORS[ind.bloomsLevel] ||
+                        "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {ind.bloomsLevel}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

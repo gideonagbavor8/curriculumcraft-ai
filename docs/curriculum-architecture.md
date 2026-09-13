@@ -18,11 +18,13 @@ this change does not invent Primary curriculum content.
 
 ## Target Model
 
-The normalized hierarchy is:
+The normalized, release-aware hierarchy is:
 
-`curriculum_frameworks -> education_levels -> grades`
+`curriculum_frameworks -> curriculum_releases -> curriculum_documents`
 
-`curriculum_frameworks -> subjects -> strands -> sub_strands -> indicators -> indicator_exemplars`
+`education_levels -> grades -> grade_subjects -> strands -> sub_strands -> content_standards -> indicators`
+
+`indicators -> indicator_exemplars` and `content_standards/indicators -> curriculum_guidance`
 
 Each indicator also belongs to one normalized grade.
 
@@ -31,7 +33,9 @@ Each indicator also belongs to one normalized grade.
 - Levels are ordered framework-owned entities such as Primary, JHS, SHS, or TVET.
 - Grades are ordered level-owned entities with optional typical age ranges.
 - Subjects are framework-scoped rather than globally scoped.
-- Indicator identity is scoped to grade, sub-strand, and code.
+- Primary grades use the official B1-B6 codes. P1-P6 remain accepted aliases at
+  API boundaries and are never stored as canonical grade codes.
+- Indicator identity is scoped to release, grade, sub-strand, and code.
 - Exemplars are child records rather than embedded JSON. Each has a stable import
   code, text, explicit order, curriculum revision, optional source reference, and
   timestamps. Unique keys prevent duplicate codes or positions within an indicator
@@ -51,10 +55,16 @@ this endpoint instead of hardcoded arrays.
 `GET /api/curriculum?curriculum=ghana-nacca-sbc&level=PRIMARY&grade=P1&subject=mathematics`
 
 Returns the existing nested strand response plus normalized level, grade name, and
-age metadata. Each indicator now includes an `exemplars` array. By default the API
-returns exemplars matching the framework's current version; callers may request a
-specific historical set with `revision=...`. Existing `subject` and `grade` calls
-remain valid, and indicators without exemplars return an empty array.
+age metadata. Each indicator includes its content standard, guidance, provenance,
+and `exemplars` array. By default the API selects the latest approved release;
+callers may request a specific release with `revision=...`. Existing `subject` and
+`grade` calls remain valid, and indicators without exemplars return an empty array.
+
+`GET /api/curriculum/sources?curriculum=ghana-nacca-sbc&revision=<version>`
+
+Returns release metadata and the official source registry, including source URL,
+coverage, document SHA-256, and extraction version. Without `revision`, it returns
+the most recently approved release.
 
 Generation requests accept optional `curriculumSlug`, `levelCode`, `levelName`,
 `gradeName`, and age bounds. When older clients send only `grade`, P1-P6 and B7-B9
@@ -70,37 +80,50 @@ for the exemplars used.
 Run either format through the same validated, idempotent importer:
 
 ```powershell
-npm run curriculum:import -- data/ghana-primary.csv
-npm run curriculum:import -- data/ghana-primary.json
+npm run curriculum:import -- data/curriculum.json --dry-run
+npm run curriculum:import -- data/curriculum.json
 ```
 
-CSV headers and JSON object keys are:
+Dry-run validates and reports counts and a checksum without opening a database
+connection. A real import uses one database transaction. Approved releases are
+immutable: an identical checksum is a no-op, while changed content must use a new
+release version.
 
-```text
-curriculumSlug,curriculumName,countryCode,authority,version,levelCode,levelName,gradeCode,gradeName,gradeSortOrder,typicalAgeMin,typicalAgeMax,subjectSlug,subjectName,strandName,subStrandName,indicatorCode,indicatorText,bloomsLevel
+Legacy CSV and JSON record arrays remain supported. A provenance-preserving JSON
+import uses this envelope:
+
+```json
+{
+  "manifest": {
+    "schemaVersion": "1",
+    "releaseStatus": "draft",
+    "documents": [{
+      "organization": "NaCCA",
+      "title": "Official curriculum title",
+      "publicationDate": "YYYY-MM-DD",
+      "version": "source version",
+      "sourceUrl": "https://...",
+      "coverage": "grades and subject covered",
+      "sha256": "64 hexadecimal characters",
+      "extractionVersion": "extractor/version"
+    }]
+  },
+  "records": []
+}
 ```
 
-CSV may append these columns and repeat the indicator row once per exemplar:
+Records link to a source with `documentSha256` and may include `pdfPage`,
+`printedPage`, `sourceReference`, `extractionConfidence`, `reviewStatus`,
+`ambiguityFlag`, and `rawSourceText`. A referenced hash must exist in the manifest.
+Content standards use `contentStandardCode` and `contentStandardText` together.
 
-```text
-exemplarCode,exemplarText,exemplarSortOrder,exemplarRevision,exemplarSourceReference
-```
-
-JSON records may include an `exemplars` array whose objects contain `code`, `text`,
-`sortOrder`, optional `revision` (defaults to the record version), and optional
-`sourceReference`. See [CSV example](./examples/curriculum-with-exemplars.csv) and
-[JSON example](./examples/curriculum-with-exemplars.json).
-
-JSON can be a record array or `{ "records": [...] }`. Supported Bloom levels are
-Remember, Understand, Apply, Analyse, Evaluate, and Create. The importer validates
-the complete file before opening a database connection, then upserts framework,
-level, grade, subject, strand, sub-strand, and indicator records. Re-importing a
-release updates names, metadata, and indicator text without creating duplicates.
-When an import includes exemplars for a revision, that indicator/revision set is
-treated as authoritative and replaced in order. Other revisions remain available.
-Omitting exemplars does not delete existing sets, which keeps old JHS imports
-backward-compatible. Run imports against staging first and retry a failed import;
-the upsert and replacement operations are idempotent.
+JSON records may include `exemplars` and `guidance` arrays. Bloom level, exemplar
+code, and exemplar label are optional because they may be absent from the official
+source. Guidance may set `target` to `indicator` (default) or `contentStandard`.
+The importer validates the complete file before connecting, then atomically upserts
+the release, source registry, hierarchy, standards, guidance, exemplars, and import
+manifest. Omitting child arrays preserves existing legacy sets. This infrastructure
+does not include or import Primary curriculum content.
 
 For production releases, keep source files versioned outside UI code, validate in a
 staging database, compare record counts by framework/level/grade/subject, and promote
@@ -115,11 +138,14 @@ the same reviewed artifact to production.
    with hierarchy-scoped import keys.
 3. Apply `0003_indicator_exemplars.sql`. It adds only the exemplar child table and
   indexes; existing indicator and saved lesson rows are unchanged.
-4. Deploy the catalog-aware API and UI. Legacy grade strings remain operational.
-5. Import authoritative curriculum and exemplar records through the importer.
-6. Verify counts, exemplar order, revision selection, and sample P1, P6, B7, and B9
+4. Apply `0004_curriculum-source-infrastructure.sql`. It adds releases, documents,
+   aliases, grade-subject links, content standards, guidance, provenance, and import
+   manifests without replacing existing JHS rows.
+5. Deploy the catalog-aware API and UI. Legacy grade strings remain operational.
+6. Import a separately reviewed authoritative curriculum artifact through the importer.
+7. Verify counts, exemplar order, revision selection, and sample B1, B6, B7, and B9
   generation before enabling users.
-7. In a later release, once all external clients use normalized IDs, consider
+8. In a later release, once all external clients use normalized IDs, consider
    removing the legacy indicator grade column. This is intentionally not part of the
    compatibility migration.
 

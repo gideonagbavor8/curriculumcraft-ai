@@ -7,15 +7,20 @@ import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
 import VisualPromptCard from "@/components/lesson/VisualPromptCard";
 import CitationBanner from "@/components/lesson/CitationBanner";
+import LessonHeaderTable from "@/components/lesson/LessonHeaderTable";
 import StudentWorksheetModal from "@/components/lesson/StudentWorksheetModal";
 import ReferenceInspector from "@/components/lesson/ReferenceInspector";
 import ErrorCard from "@/components/lesson/ErrorCard";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
+import type { LessonDocumentType } from "@/lib/lessonExport";
+import { useTeacherProfile, readExampleHistory, writeExampleHistory } from "@/lib/teacherProfile";
+import { RegionSearchInput } from "@/components/location/LocationCascadeSelect";
+import type { LocalExampleCategory } from "@/lib/localContext/types";
 
 interface SelectedIndicator {
   code: string;
   text: string;
-  bloomsLevel: string;
+  bloomsLevel: string | null;
   grade: string;
   curriculumSlug?: string;
   levelCode?: string;
@@ -85,17 +90,25 @@ export default function LessonBuilderPage() {
   const [selectedIndicator, setSelectedIndicator] = useState<SelectedIndicator | null>(null);
   const [duration, setDuration] = useState("60");
   const [classSize, setClassSize] = useState("35");
+  const [schoolName, setSchoolName] = useState("");
+  const [teacherName, setTeacherName] = useState("");
+  const [weekEnding, setWeekEnding] = useState("");
+  const [day, setDay] = useState("");
   const language = "English";
   const [difficultyLevel, setDifficultyLevel] = useState<DifficultyLevel>("average");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
+  const [activeTab, setActiveTab] = useState<"plan" | "note" | "reading" | "visual">("plan");
   const [isWorksheetOpen, setIsWorksheetOpen] = useState(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
+  const { profile } = useTeacherProfile();
+  const [regionOverride, setRegionOverride] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -107,7 +120,7 @@ export default function LessonBuilderPage() {
     const subStrand = params.get("subStrand");
     const bloomsLevel = params.get("bloomsLevel");
 
-    if (code && text && subject && grade && strand && subStrand && bloomsLevel) {
+    if (code && text && subject && grade && strand && subStrand) {
       const timeout = window.setTimeout(() => {
         setSelectedIndicator({
           code,
@@ -117,7 +130,7 @@ export default function LessonBuilderPage() {
           grade,
           strand,
           subStrand,
-          bloomsLevel,
+          bloomsLevel: bloomsLevel || null,
           curriculumSlug: params.get("curriculumSlug") ?? undefined,
           levelCode: params.get("levelCode") ?? undefined,
           levelName: params.get("levelName") ?? undefined,
@@ -179,11 +192,30 @@ export default function LessonBuilderPage() {
           classSize: size,
           language,
           difficultyLevel: difficulty,
+          schoolName: schoolName || undefined,
+          teacherName: teacherName || undefined,
+          weekEnding: weekEnding || undefined,
+          day: day || undefined,
+          locationProfile: {
+            ...profile,
+            region: regionOverride || profile.region,
+          },
+          exampleHistory: readExampleHistory(),
         }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       setResult(data.data);
+      const used = data.data.resolvedLocalContext?.examples as Partial<Record<LocalExampleCategory, string>> | undefined;
+      if (used) {
+        const history = readExampleHistory();
+        for (const [category, value] of Object.entries(used)) {
+          if (!value) continue;
+          const prior = (history[category] ?? []).filter((item: string) => item !== value);
+          history[category] = [value, ...prior].slice(0, 4);
+        }
+        writeExampleHistory(history);
+      }
       toast.success(`Lesson generated in ${language}!`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to generate lesson";
@@ -214,9 +246,11 @@ export default function LessonBuilderPage() {
           levelCode: selectedIndicator.levelCode,
           strand: selectedIndicator.strand,
           subStrand: selectedIndicator.subStrand,
-          teacherNotes: result.teacherNotes,
+          lessonPlan: result.lessonPlan,
+          teacherNotes: result.lessonNote,
           visualPrompts: result.visualPrompts,
           studentReading: result.studentReading,
+          lessonHeader: result.header,
           language,
           difficultyLevel,
         }),
@@ -234,108 +268,35 @@ export default function LessonBuilderPage() {
     }
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (documentType: LessonDocumentType) => {
     if (!result) return;
     setExporting(true);
     toast.info("Preparing PDF export...");
     try {
-      const jspdfModule = await import("jspdf");
-      const JsPDF = jspdfModule.jsPDF ?? jspdfModule.default;
-      const pdf = new JsPDF("p", "mm", "a4");
-      const pageW = pdf.internal.pageSize.getWidth();
-      const margin = 15;
-      const maxW = pageW - margin * 2;
-      let y = 20;
-
-      const checkPage = (needed = 10) => {
-        if (y + needed > 275) { pdf.addPage(); y = 20; }
-      };
-
-      // Header bar
-      pdf.setFillColor(22, 101, 52);
-      pdf.rect(0, 0, pageW, 28, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(16);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("CurriculumCraft AI", margin, 12);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(
-        `NaCCA Standards-Based Curriculum - Ghana ${selectedIndicator?.levelName ?? "JHS"}`,
-        margin,
-        20
-      );
-      pdf.text(new Date().toLocaleDateString("en-GB"), pageW - margin, 20, { align: "right" });
-
-      // Metadata strip
-      y = 36;
-      pdf.setFillColor(240, 253, 244);
-      pdf.rect(margin, y, maxW, 16, "F");
-      pdf.setTextColor(22, 101, 52);
-      pdf.setFontSize(8);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(
-        `${result.indicatorCode}  ·  ${result.subject}  ·  ${result.grade}  ·  ${result.strand}  ·  ${difficultyLevel}`,
-        margin + 3, y + 6
-      );
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7.5);
-      pdf.text(selectedIndicator?.text ?? "", margin + 3, y + 12, { maxWidth: maxW - 6 });
-      y += 24;
-
-      // Section renderer
-      const addSection = (
-        title: string,
-        content: string,
-        rgb: [number, number, number]
-      ) => {
-        checkPage(20);
-        pdf.setFillColor(...rgb);
-        pdf.rect(margin, y, maxW, 8, "F");
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(title, margin + 3, y + 5.5);
-        y += 11;
-        pdf.setTextColor(30, 30, 30);
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "normal");
-        // Strip markdown
-        const plain = content
-          .replace(/#{1,6}\s+/g, "")
-          .replace(/\*\*(.+?)\*\*/g, "$1")
-          .replace(/\*(.+?)\*/g, "$1")
-          .replace(/`(.+?)`/g, "$1")
-          .replace(/^[-*]\s+/gm, "• ");
-        const lines = pdf.splitTextToSize(plain, maxW);
-        for (const line of lines) {
-          checkPage(6);
-          pdf.text(line, margin, y);
-          y += 5.5;
-        }
-        y += 5;
-      };
-
-      addSection("Teacher Notes", result.teacherNotes, [21, 128, 61]);
-      addSection("Visual Prompts & Classroom Activities", result.visualPrompts, [180, 83, 9]);
-      addSection(`Student Reading Material — ${language}`, result.studentReading, [29, 78, 216]);
-
-      // Footer on every page
-      const totalPages = (pdf.internal as unknown as{ getNumberOfPages: () => number }).getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(7);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(`CurriculumCraft AI  ·  Page ${i} of ${totalPages}`, pageW / 2, 291, { align: "center" });
-      }
-
-      pdf.save(`lesson-${result.indicatorCode}-${language}.pdf`);
+      const { exportLessonPdf } = await import("@/lib/exportLessonPdf");
+      await exportLessonPdf({ header: result.header, lessonPlan: result.lessonPlan, lessonNote: result.lessonNote }, documentType);
       toast.success("PDF downloaded!");
     } catch (err) {
       console.error("PDF export error:", err);
       toast.error("PDF export failed. Try the Print button instead.");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportDocx = async (documentType: LessonDocumentType) => {
+    if (!result) return;
+    setExportingDocx(true);
+    toast.info("Preparing Word export...");
+    try {
+      const { exportLessonDocx } = await import("@/lib/exportLessonDocx");
+      await exportLessonDocx({ header: result.header, lessonPlan: result.lessonPlan, lessonNote: result.lessonNote }, documentType);
+      toast.success("Word document downloaded!");
+    } catch (err) {
+      console.error("DOCX export error:", err);
+      toast.error("Word export failed.");
+    } finally {
+      setExportingDocx(false);
     }
   };
 
@@ -423,6 +384,49 @@ export default function LessonBuilderPage() {
                   </div>
                 </div>
 
+                {/* Local context - region drives examples in the generated lesson */}
+                <div>
+                  <RegionSearchInput
+                    value={regionOverride}
+                    onChange={setRegionOverride}
+                    placeholder={
+                      profile.region
+                        ? `Use my saved region (${profile.region}), or type another`
+                        : "No saved region - type one to vary Ghana-wide examples"
+                    }
+                  />
+                  {!profile.region && !regionOverride && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                      No location saved - set one in Settings, or pick a region above just for this lesson.
+                    </p>
+                  )}
+                </div>
+
+                {/* Optional GES header identity fields */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">
+                    Lesson plan header details (optional)
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)}
+                      placeholder="School name"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    <input type="text" value={teacherName} onChange={(e) => setTeacherName(e.target.value)}
+                      placeholder="Teacher name"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    <input type="date" value={weekEnding} onChange={(e) => setWeekEnding(e.target.value)}
+                      title="Week ending"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500" />
+                    <select value={day} onChange={(e) => setDay(e.target.value)} title="Day"
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500">
+                      <option value="">Day</option>
+                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <button onClick={handleGenerate} disabled={loading}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 disabled:from-green-300 disabled:to-green-200 text-white font-semibold text-sm transition-all shadow-md hover:shadow-lg hover:shadow-green-500/30 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95 duration-150">
                   {loading
@@ -460,6 +464,12 @@ export default function LessonBuilderPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
+                  {result.resolvedLocalContext && (
+                    <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200">
+                      📍 {result.resolvedLocalContext.regionName}
+                      {result.resolvedLocalContext.isFallback ? " (auto-varied)" : ""}
+                    </span>
+                  )}
                   <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200">
                     {difficultyLevel}
                   </span>
@@ -474,28 +484,67 @@ export default function LessonBuilderPage() {
                 <hr className="mt-3 border-gray-300" />
               </div>
 
-              <SectionCard 
-                icon="📋" 
-                label="Teacher Notes" 
-                content={result.teacherNotes} 
-                accentColor="green" 
-                citations={result.citations} 
-                onInspect={() => setIsInspectorOpen(true)}
-              />
-              <VisualPromptCard 
-                content={result.visualPrompts} 
-                citations={result.citations} 
-                subject={result.subject} 
-                onInspect={() => setIsInspectorOpen(true)}
-              />
-              <SectionCard 
-                icon="📖" 
-                label={`Student Reading Material — ${language}`} 
-                content={result.studentReading} 
-                accentColor="blue" 
-                citations={result.citations} 
-                onInspect={() => setIsInspectorOpen(true)}
-              />
+              <LessonHeaderTable header={result.header} />
+
+              <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 no-print">
+                {([
+                  { key: "plan", label: "Lesson Plan" },
+                  { key: "note", label: "Lesson Note" },
+                  { key: "reading", label: "Student Reading" },
+                  { key: "visual", label: "Visual Prompts" },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      activeTab === tab.key
+                        ? "bg-white dark:bg-gray-900 text-green-700 dark:text-green-400 shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === "plan" && (
+                <SectionCard
+                  icon="📋"
+                  label="Lesson Plan"
+                  content={result.lessonPlan}
+                  accentColor="green"
+                  citations={result.citations}
+                  onInspect={() => setIsInspectorOpen(true)}
+                />
+              )}
+              {activeTab === "note" && (
+                <SectionCard
+                  icon="📝"
+                  label="Lesson Note"
+                  content={result.lessonNote}
+                  accentColor="green"
+                  citations={result.citations}
+                  onInspect={() => setIsInspectorOpen(true)}
+                />
+              )}
+              {activeTab === "visual" && (
+                <VisualPromptCard
+                  content={result.visualPrompts}
+                  citations={result.citations}
+                  subject={result.subject}
+                  onInspect={() => setIsInspectorOpen(true)}
+                />
+              )}
+              {activeTab === "reading" && (
+                <SectionCard
+                  icon="📖"
+                  label={`Student Reading Material — ${language}`}
+                  content={result.studentReading}
+                  accentColor="blue"
+                  citations={result.citations}
+                  onInspect={() => setIsInspectorOpen(true)}
+                />
+              )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
                 <button onClick={handleSave} disabled={saving || saved}
@@ -506,13 +555,28 @@ export default function LessonBuilderPage() {
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all cursor-pointer transform hover:scale-105 active:scale-95 duration-150">
                   <FileText size={14} />Student Worksheet
                 </button>
-                <button onClick={handleExportPDF} disabled={exporting}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60 cursor-pointer">
-                  {exporting ? <><Loader2 size={14} className="animate-spin" />Exporting...</> : <><Download size={14} />Export PDF</>}
-                </button>
                 <button onClick={() => window.print()}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer">
                   <Printer size={14} />Print Lesson
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
+                <button onClick={() => handleExportPDF("plan")} disabled={exporting}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60 cursor-pointer">
+                  {exporting ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Plan PDF</>}
+                </button>
+                <button onClick={() => handleExportDocx("plan")} disabled={exportingDocx}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all disabled:opacity-60 cursor-pointer">
+                  {exportingDocx ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Plan Word</>}
+                </button>
+                <button onClick={() => handleExportPDF("note")} disabled={exporting}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60 cursor-pointer">
+                  {exporting ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Note PDF</>}
+                </button>
+                <button onClick={() => handleExportDocx("note")} disabled={exportingDocx}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all disabled:opacity-60 cursor-pointer">
+                  {exportingDocx ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Note Word</>}
                 </button>
               </div>
             </div>

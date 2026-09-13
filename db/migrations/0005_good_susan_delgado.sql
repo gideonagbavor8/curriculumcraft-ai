@@ -1,0 +1,1 @@
+ALTER TABLE "saved_lessons" ADD COLUMN "lesson_header" jsonb;

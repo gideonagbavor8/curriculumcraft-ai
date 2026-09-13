@@ -9,7 +9,7 @@ import MarkdownRenderer, { parseInlineContent } from "@/components/lesson/Markdo
 interface SelectedIndicator {
   code: string;
   text: string;
-  bloomsLevel: string;
+  bloomsLevel: string | null;
   grade: string;
   curriculumSlug?: string;
   levelCode?: string;

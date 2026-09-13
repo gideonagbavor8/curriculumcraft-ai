@@ -33,7 +33,7 @@ Every generated output uses authentic Ghanaian cultural context — local names 
 ## Three Views
 
 ### 1. Standard Map Dashboard
-Browse the full NaCCA curriculum tree across 4 subjects and 3 grade levels (B7–B9). Every strand, sub-strand and indicator is searchable. Click any indicator to instantly launch the Lesson Builder.
+Browse the available NaCCA curriculum tree across Primary and JHS. Primary uses official B1-B6 codes while P1-P6 remain accepted aliases. Every strand, sub-strand and indicator is searchable. Click any indicator to instantly launch the Lesson Builder.
 
 ### 2. Lesson & Material Builder
 Select a subject, grade, strand and indicator. Configure lesson duration and class size. Generate complete teacher notes, visual prompts and student reading material — all grounded in the NaCCA curriculum via Microsoft Foundry IQ.
@@ -47,7 +47,7 @@ Generate 5 multiple-choice questions (with interactive answer checking and expla
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 15 (App Router), Tailwind CSS v4, shadcn/ui |
+| Frontend | Next.js 16 (App Router), Tailwind CSS v4, shadcn/ui |
 | Backend | Next.js API Routes (Server-side) |
 | Database | Neon PostgreSQL (serverless) |
 | ORM | Drizzle ORM |
@@ -156,8 +156,9 @@ npm run db:push
 # Seed NaCCA curriculum data
 npm run db:seed
 
-# Import an authoritative CSV or JSON curriculum release
-npm run curriculum:import -- path/to/curriculum.csv
+# Validate, then import an authoritative CSV or JSON curriculum release
+npm run curriculum:import -- path/to/curriculum.json --dry-run
+npm run curriculum:import -- path/to/curriculum.json
 
 # Start development server
 npm run dev

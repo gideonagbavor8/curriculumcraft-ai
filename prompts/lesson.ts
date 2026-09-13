@@ -1,5 +1,6 @@
 import { getGradeContext } from "@/lib/curriculum/catalog";
-import type { IndicatorExemplar } from "@/types/curriculum";
+import type { CurriculumGuidance, IndicatorExemplar } from "@/types/curriculum";
+import type { ResolvedLocalContext } from "@/lib/localContext/types";
 
 export const LESSON_SYSTEM_PROMPT = `You are an expert instructional designer specialising in Ghana's NaCCA Standards-Based Curriculum (SBC) for Primary and Junior High School.
 
@@ -7,11 +8,21 @@ Your role is to help Ghanaian teachers by transforming NaCCA curriculum indicato
 
 ## Cultural Context Rules — ALWAYS follow these:
 - Use Ghanaian names: Ama, Kofi, Adjoa, Kwame, Abena, Yaw, Akosua, Fiifi, Dzifa, Edem, Kafui
-- Use Ghanaian settings: Kumasi Central Market, Cape Coast fishing harbour, Ashanti cocoa farms, Accra streets, Ho in the Volta Region, Tamale, Bolgatanga, Makola Market
+- If a "## Local Context" block is provided in the user message below, you MUST
+  use ONLY those specific local details (market, water body, crop, festival,
+  occupation, transport, landmark, activity) for every example, scenario, and
+  worked problem in this lesson - do not substitute generic or different
+  locations. Never default to Accra, Kumasi, Cape Coast, or Tema unless the
+  Local Context block itself names one of them.
+- If NO "## Local Context" block is provided, use varied Ghanaian settings
+  across the country's different regions (not only Accra, Kumasi, Cape Coast,
+  or Tema) so examples stay nationally representative.
 - Use Ghana Cedis (GHS) for all monetary examples
 - Reference Ghanaian foods: kenkey, banku, fufu, waakye, jollof rice, kelewele, akple, abolo
 - Reference Ghanaian culture and values: communal living, respect for elders, hard work (obra), honesty
-- Use relatable local scenarios: trotro fares, market trading, mobile money (MoMo), football, school farming
+- Every local example must still directly support the indicator, match the
+  learner's age, be factually accurate, and avoid stereotyping any region or
+  occupation.
 
 ## Formatting Rules — ALWAYS follow these:
 - Use **bold** for key terms, section headings, and important concepts
@@ -22,12 +33,40 @@ Your role is to help Ghanaian teachers by transforming NaCCA curriculum indicato
 - Write all mathematical equations, formulas, expressions, fractions, division, and exponents using standard LaTeX: use $...$ for inline equations (e.g., $E=mc^2$ or $\frac{1}{2}$) and $$...$$ for block equations on separate lines.
 
 ## Output Structure:
-Always return EXACTLY three sections separated by these exact markers:
----TEACHER NOTES---
+Always return EXACTLY four sections separated by these exact markers:
+---LESSON PLAN---
+---LESSON NOTE---
 ---VISUAL CONTENT PROMPTS---
 ---STUDENT READING MATERIAL---
 
-Do not add anything before ---TEACHER NOTES--- or after the student reading material.`;
+Both LESSON PLAN and LESSON NOTE must use these exact "### " headings, in this
+exact order (do not rename, merge, reorder, or omit any of them):
+### Performance Indicator
+### Core Competencies
+### Teaching and Learning Resources
+### Reference Prior Knowledge
+### Starter
+### Main Activity
+### Guided Practice
+### Independent Practice
+### Plenary
+### Assessment
+### Homework
+### Differentiation
+### Key Vocabulary
+
+LESSON PLAN is a CONCISE OUTLINE only - the skeleton a teacher prepares and
+submits in advance: 1-3 short bullet points per heading, brief phrases, no full
+explanations, no worked examples spelled out, timings included. It must fit on
+roughly one page.
+
+LESSON NOTE is the FULL EXPANDED SCRIPT the teacher actually teaches from -
+under the SAME headings, write out complete explanations, full worked examples
+with every step, the actual questions to ask learners, and board content in
+full prose. LESSON NOTE must never be a copy of LESSON PLAN - it must contain
+substantially more detail under every heading.
+
+Do not add anything before ---LESSON PLAN--- or after the student reading material.`;
 
 const LANGUAGE_INSTRUCTIONS: Record<string, string> = {
   English: "Write all content in clear, standard English appropriate for the stated Ghanaian grade and age range.",
@@ -74,6 +113,10 @@ export function buildLessonUserPrompt({
   typicalAgeMin,
   typicalAgeMax,
   exemplars = [],
+  contentStandardCode,
+  contentStandardText,
+  guidance = [],
+  localContext,
 }: {
   indicatorCode: string;
   indicatorText: string;
@@ -81,7 +124,7 @@ export function buildLessonUserPrompt({
   grade: string;
   strand: string;
   subStrand: string;
-  bloomsLevel: string;
+  bloomsLevel?: string | null;
   duration: string;
   classSize: string;
   language?: string;
@@ -92,6 +135,10 @@ export function buildLessonUserPrompt({
   typicalAgeMin?: number;
   typicalAgeMax?: number;
   exemplars?: IndicatorExemplar[];
+  contentStandardCode?: string;
+  contentStandardText?: string;
+  guidance?: CurriculumGuidance[];
+  localContext?: ResolvedLocalContext;
 }): string {
   const langInstruction = LANGUAGE_INSTRUCTIONS[language] || LANGUAGE_INSTRUCTIONS.English;
   const diffInstruction = DIFFICULTY_INSTRUCTIONS[difficultyLevel] || DIFFICULTY_INSTRUCTIONS.average;
@@ -111,9 +158,33 @@ ${exemplars
   .slice(0, 20)
   .map(
     (exemplar, index) =>
-      `${index + 1}. [${exemplar.code}] ${exemplar.text.slice(0, 1000)}`
+      `${index + 1}. [${exemplar.label ?? exemplar.code ?? "Unlabelled"}] ${exemplar.text.slice(0, 1000)}`
   )
   .join("\n")}
+`
+    : "";
+  const standardContext = contentStandardText
+    ? `**Content Standard${contentStandardCode ? ` (${contentStandardCode})` : ""}:** ${contentStandardText}\n`
+    : "";
+  const guidanceContext = guidance.length
+    ? `## Official Curriculum Guidance:\n${guidance
+        .map((item) => `- ${item.kind}: ${item.text}`)
+        .join("\n")}\n`
+    : "";
+  const bloomContext = bloomsLevel
+    ? `**Bloom's Taxonomy Level:** ${bloomsLevel}`
+    : "**Bloom's Taxonomy Level:** Not specified in the official source";
+  const objectiveAlignment = bloomsLevel
+    ? `aligned to the ${bloomsLevel} level of Bloom's Taxonomy`
+    : "aligned directly to the official indicator and content standard";
+  const localContextBlock = localContext
+    ? `## Local Context (use ONLY these specific details for every example in this lesson):
+- Region: ${localContext.regionName}${localContext.district ? `, ${localContext.district} district` : ""}${localContext.community ? `, ${localContext.community}` : ""}
+${localContext.schoolName ? `- School: ${localContext.schoolName}\n` : ""}${Object.entries(localContext.examples)
+        .map(([category, value]) => `- ${category}: ${value}`)
+        .join("\n")}
+Use these as the concrete setting/objects for worked examples and scenarios -
+do not invent a different town, market, or landmark.
 `
     : "";
 
@@ -125,9 +196,9 @@ ${exemplars
 **Typical Learner Age:** ${ageContext}
 **Strand:** ${strand}
 **Sub-strand:** ${subStrand}
-**Indicator Code:** ${indicatorCode}
+${standardContext}**Indicator Code:** ${indicatorCode}
 **Indicator:** ${indicatorText}
-**Bloom's Taxonomy Level:** ${bloomsLevel}
+${bloomContext}
 **Lesson Duration:** ${duration} minutes
 **Class Size:** ${classSize} students
 
@@ -140,22 +211,113 @@ ${langInstruction}
 ## Difficulty Level:
 ${diffInstruction}
 
-${foundryContext ? `## Curriculum Grounding from NaCCA Documents:\n${foundryContext}\n` : ""}
+${localContextBlock}${foundryContext ? `## Curriculum Grounding from NaCCA Documents:\n${foundryContext}\n` : ""}
 ${exemplarContext}
+${guidanceContext}
 
----TEACHER NOTES---
-Write detailed teacher notes including:
-- **Learning Objectives** — 3 bullet points aligned to the ${bloomsLevel} level of Bloom's Taxonomy
-- **Prior Knowledge** — what students should already know before this lesson
-- **Lesson Plan** — step-by-step with timings:
-  - Starter Activity (5-10 mins)
-  - Main Instruction (${Math.round(parseInt(duration) * 0.4)} mins)
-  - Group Work / Practice (${Math.round(parseInt(duration) * 0.3)} mins)
-  - Plenary / Wrap-up (5-10 mins)
-- **Key Vocabulary** — 4-5 terms with brief, student-friendly definitions
-- **Common Misconceptions** — 2-3 mistakes students typically make and how to address them
-- **Differentiation Tips** — specific to the ${difficultyLevel} level
-- **Ghanaian Values Link** — connect the lesson to a Ghanaian value or real-life context
+---LESSON PLAN---
+Write the CONCISE lesson plan outline (see Output Structure rules above - short
+bullet points only, no full explanations) using exactly these headings, in this
+exact order:
+
+### Performance Indicator
+One "Learners can..." statement ${objectiveAlignment}, specific and measurable.
+
+### Core Competencies
+2-3 core competencies this lesson develops (e.g. Critical Thinking and Problem
+Solving, Collaboration, Communication, Digital Literacy, Cultural Identity and
+Global Citizenship, Personal Development and Leadership) as a short bullet list.
+${guidance.length ? "Prefer the official curriculum guidance provided above over invented competencies." : ""}
+
+### Teaching and Learning Resources
+A bullet list of concrete, low-cost materials available in a typical Ghanaian
+classroom (e.g. counters, chalkboard, local objects, charts) needed for this
+specific lesson.
+
+### Reference Prior Knowledge
+One sentence on what learners should already know before this lesson.
+
+### Starter
+One or two bullet points naming the opening activity (about 5-10 minutes).
+
+### Main Activity
+Bullet points naming the core teaching steps (about ${Math.round(parseInt(duration) * 0.4)} minutes) - no full explanations.
+
+### Guided Practice
+One bullet point naming the guided/teacher-supported practice task (about ${Math.round(parseInt(duration) * 0.15)} minutes).
+
+### Independent Practice
+One bullet point naming the independent practice task (about ${Math.round(parseInt(duration) * 0.15)} minutes).
+
+### Plenary
+One bullet point naming the closing review activity (about 5-10 minutes).
+
+### Assessment
+One bullet point naming how the teacher checks achievement of the Performance Indicator.
+
+### Homework
+One bullet point naming the follow-up task.
+
+### Differentiation
+One bullet point per level (support / extension) for the ${difficultyLevel} focus.
+
+### Key Vocabulary
+A bare list of 4-5 terms (no definitions here - definitions belong in the Lesson Note).
+
+---LESSON NOTE---
+Write the FULL EXPANDED lesson note (see Output Structure rules above - complete
+explanations and worked examples, not summaries) using exactly the same
+headings and order as LESSON PLAN:
+
+### Performance Indicator
+Restate the same "Learners can..." statement.
+
+### Core Competencies
+The same competencies, each with one sentence on how this lesson develops it.
+
+### Teaching and Learning Resources
+The same resource list, each with a one-line note on how it will be used.
+
+### Reference Prior Knowledge
+1-2 sentences on what learners should already know before this lesson.
+
+### Starter
+The opening activity (about 5-10 minutes) written out in full, in a Ghanaian context.
+
+### Main Activity
+The core teacher-led teaching (about ${Math.round(parseInt(duration) * 0.35)} minutes), step-by-step, written out in
+full, including at least one complete worked example. Weave in key vocabulary
+with brief definitions and address 1-2 common misconceptions directly within
+the steps where they naturally arise.
+
+### Guided Practice
+A teacher-supported practice task (about ${Math.round(parseInt(duration) * 0.2)} minutes) written out in full, with the
+teacher circulating and correcting as learners try the skill with support.
+
+### Independent Practice
+A task learners complete on their own (about ${Math.round(parseInt(duration) * 0.15)} minutes) written out in full, to
+consolidate the skill without teacher support.
+
+### Plenary
+A closing review activity (about 5-10 minutes) written out in full, that checks
+whether learners achieved the Performance Indicator, e.g. targeted questioning
+or a quick recap.
+
+### Assessment
+How the teacher checks achievement of the Performance Indicator during or after
+the lesson (oral questioning, written exercise, observation, or practical task) -
+be specific to this lesson, not generic.
+
+### Homework
+One short follow-up task or exercise learners complete independently before the
+next lesson, written out in full.
+
+### Differentiation
+Specific adjustments for the ${difficultyLevel} level described above, plus a
+one-line note connecting the lesson to a Ghanaian value or real-life context.
+
+### Key Vocabulary
+4-5 terms introduced in this lesson with brief, student-friendly definitions.
 
 ---VISUAL CONTENT PROMPTS---
 Write 4 specific visual content prompts a teacher can create with minimal resources:

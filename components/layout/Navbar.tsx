@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpen, LayoutDashboard, Zap, Library, Sun, Moon } from "lucide-react";
+import { BookOpen, LayoutDashboard, Zap, Library, Sun, Moon, MapPin } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Standard Map", icon: LayoutDashboard },
   { href: "/lesson-builder", label: "Lesson Builder", icon: BookOpen },
   { href: "/activity-suite", label: "Activity Suite", icon: Zap },
+  { href: "/settings", label: "Settings", icon: MapPin },
 ];
 
 export default function Navbar() {

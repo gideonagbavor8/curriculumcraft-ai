@@ -1,5 +1,5 @@
 import { getGradeContext } from "@/lib/curriculum/catalog";
-import type { IndicatorExemplar } from "@/types/curriculum";
+import type { CurriculumGuidance, IndicatorExemplar } from "@/types/curriculum";
 
 export const ACTIVITY_SYSTEM_PROMPT = `You are an expert assessment designer specialising in Ghana's NaCCA Standards-Based Curriculum (SBC) for Primary and Junior High School.
 
@@ -36,18 +36,24 @@ export function buildActivityUserPrompt({
   typicalAgeMin,
   typicalAgeMax,
   exemplars = [],
+  contentStandardCode,
+  contentStandardText,
+  guidance = [],
 }: {
   indicatorCode: string;
   indicatorText: string;
   subject: string;
   grade: string;
   strand: string;
-  bloomsLevel: string;
+  bloomsLevel?: string | null;
   levelName?: string;
   gradeName?: string;
   typicalAgeMin?: number;
   typicalAgeMax?: number;
   exemplars?: IndicatorExemplar[];
+  contentStandardCode?: string;
+  contentStandardText?: string;
+  guidance?: CurriculumGuidance[];
 }): string {
   const inferredContext = getGradeContext(grade);
   const resolvedLevelName = levelName ?? inferredContext?.levelName ?? "School";
@@ -66,10 +72,15 @@ ${exemplars
   .slice(0, 20)
   .map(
     (exemplar, index) =>
-      `${index + 1}. [${exemplar.code}] ${exemplar.text.slice(0, 1000)}`
+      `${index + 1}. [${exemplar.label ?? exemplar.code ?? "Unlabelled"}] ${exemplar.text.slice(0, 1000)}`
   )
   .join("\n")}
 `
+    : "";
+  const guidanceContext = guidance.length
+    ? `\nOfficial Curriculum Guidance:\n${guidance
+        .map((item) => `- ${item.kind}: ${item.text}`)
+        .join("\n")}\n`
     : "";
 
   return `Generate assessment activities for the following NaCCA indicator:
@@ -79,12 +90,14 @@ Education Level: ${resolvedLevelName}
 Grade: ${resolvedGradeName} (${grade})
 Typical Learner Age: ${ageContext}
 Strand: ${strand}
+${contentStandardText ? `Content Standard${contentStandardCode ? ` (${contentStandardCode})` : ""}: ${contentStandardText}` : ""}
 Indicator Code: ${indicatorCode}
 Indicator: ${indicatorText}
-Bloom's Level: ${bloomsLevel}
+Bloom's Level: ${bloomsLevel ?? "Not specified in the official source"}
 
 Match reading load, instructions, distractors, and expected responses to ${resolvedGradeName}. For Primary learners, use short concrete tasks and age-appropriate language. For JHS learners, use progressively more independent reasoning and subject vocabulary.
 ${exemplarContext}
+${guidanceContext}
 
 Return ONLY a valid JSON object with this exact structure:
 {

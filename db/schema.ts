@@ -1,12 +1,15 @@
 import {
+  boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const curriculumFrameworks = pgTable("curriculum_frameworks", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -19,6 +22,51 @@ export const curriculumFrameworks = pgTable("curriculum_frameworks", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const curriculumReleases = pgTable(
+  "curriculum_releases",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    curriculumId: uuid("curriculum_id")
+      .notNull()
+      .references(() => curriculumFrameworks.id, { onDelete: "cascade" }),
+    version: text("version").notNull(),
+    status: text("status").default("draft").notNull(),
+    approvedAt: timestamp("approved_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("curriculum_releases_curriculum_version_unique").on(
+      table.curriculumId,
+      table.version
+    ),
+  ]
+);
+
+export const curriculumDocuments = pgTable(
+  "curriculum_documents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => curriculumReleases.id, { onDelete: "restrict" }),
+    organization: text("organization").notNull(),
+    title: text("title").notNull(),
+    publicationDate: text("publication_date"),
+    version: text("version").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    coverage: text("coverage").notNull(),
+    sha256: text("sha256").notNull(),
+    extractionVersion: text("extraction_version").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("curriculum_documents_release_sha256_unique").on(
+      table.releaseId,
+      table.sha256
+    ),
+  ]
+);
 
 export const educationLevels = pgTable(
   "education_levels",
@@ -60,6 +108,27 @@ export const grades = pgTable(
   ]
 );
 
+export const gradeAliases = pgTable(
+  "grade_aliases",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    gradeId: uuid("grade_id")
+      .notNull()
+      .references(() => grades.id, { onDelete: "cascade" }),
+    educationLevelId: uuid("education_level_id")
+      .notNull()
+      .references(() => educationLevels.id, { onDelete: "cascade" }),
+    alias: text("alias").notNull(),
+    kind: text("kind").default("display").notNull(),
+  },
+  (table) => [
+    uniqueIndex("grade_aliases_level_alias_unique").on(
+      table.educationLevelId,
+      table.alias
+    ),
+  ]
+);
+
 export const subjects = pgTable(
   "subjects",
   {
@@ -68,6 +137,7 @@ export const subjects = pgTable(
       .notNull()
       .references(() => curriculumFrameworks.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    displayName: text("display_name"),
     slug: text("slug").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -79,6 +149,31 @@ export const subjects = pgTable(
   ]
 );
 
+export const gradeSubjects = pgTable(
+  "grade_subjects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    gradeId: uuid("grade_id")
+      .notNull()
+      .references(() => grades.id, { onDelete: "cascade" }),
+    subjectId: uuid("subject_id")
+      .notNull()
+      .references(() => subjects.id, { onDelete: "cascade" }),
+    releaseId: uuid("release_id")
+      .references(() => curriculumReleases.id, { onDelete: "restrict" }),
+    documentId: uuid("document_id")
+      .references(() => curriculumDocuments.id, { onDelete: "restrict" }),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  (table) => [
+    uniqueIndex("grade_subjects_grade_subject_release_unique").on(
+      table.gradeId,
+      table.subjectId,
+      table.releaseId
+    ),
+  ]
+);
+
 export const strands = pgTable(
   "strands",
   {
@@ -86,10 +181,27 @@ export const strands = pgTable(
     subjectId: uuid("subject_id")
       .notNull()
       .references(() => subjects.id, { onDelete: "cascade" }),
+    gradeSubjectId: uuid("grade_subject_id").references(() => gradeSubjects.id, {
+      onDelete: "cascade",
+    }),
+    code: text("code"),
     name: text("name").notNull(),
+    displayName: text("display_name"),
+    sortOrder: integer("sort_order"),
+    documentId: uuid("document_id").references(() => curriculumDocuments.id, {
+      onDelete: "restrict",
+    }),
+    pdfPage: integer("pdf_page"),
+    printedPage: text("printed_page"),
+    sourceReference: text("source_reference"),
   },
   (table) => [
-    uniqueIndex("strands_subject_name_unique").on(table.subjectId, table.name),
+    uniqueIndex("strands_legacy_subject_name_unique")
+      .on(table.subjectId, table.name)
+      .where(sql`${table.gradeSubjectId} is null`),
+    uniqueIndex("strands_grade_subject_code_unique")
+      .on(table.gradeSubjectId, table.code)
+      .where(sql`${table.gradeSubjectId} is not null`),
   ]
 );
 
@@ -100,10 +212,56 @@ export const subStrands = pgTable(
     strandId: uuid("strand_id")
       .notNull()
       .references(() => strands.id, { onDelete: "cascade" }),
+    code: text("code"),
     name: text("name").notNull(),
+    displayName: text("display_name"),
+    sortOrder: integer("sort_order"),
+    documentId: uuid("document_id").references(() => curriculumDocuments.id, {
+      onDelete: "restrict",
+    }),
+    pdfPage: integer("pdf_page"),
+    printedPage: text("printed_page"),
+    sourceReference: text("source_reference"),
   },
   (table) => [
     uniqueIndex("sub_strands_strand_name_unique").on(table.strandId, table.name),
+  ]
+);
+
+export const contentStandards = pgTable(
+  "content_standards",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    subStrandId: uuid("sub_strand_id")
+      .notNull()
+      .references(() => subStrands.id, { onDelete: "cascade" }),
+    gradeId: uuid("grade_id")
+      .notNull()
+      .references(() => grades.id, { onDelete: "restrict" }),
+    releaseId: uuid("release_id")
+      .references(() => curriculumReleases.id, { onDelete: "restrict" }),
+    code: text("code").notNull(),
+    text: text("text").notNull(),
+    displayText: text("display_text"),
+    sortOrder: integer("sort_order").notNull(),
+    documentId: uuid("document_id").references(() => curriculumDocuments.id, {
+      onDelete: "restrict",
+    }),
+    pdfPage: integer("pdf_page"),
+    printedPage: text("printed_page"),
+    sourceReference: text("source_reference"),
+    extractionConfidence: text("extraction_confidence"),
+    reviewStatus: text("review_status").default("pending").notNull(),
+    ambiguityFlag: boolean("ambiguity_flag").default(false).notNull(),
+    rawSourceText: text("raw_source_text"),
+  },
+  (table) => [
+    uniqueIndex("content_standards_grade_sub_strand_release_code_unique").on(
+      table.gradeId,
+      table.subStrandId,
+      table.releaseId,
+      table.code
+    ),
   ]
 );
 
@@ -114,9 +272,28 @@ export const indicators = pgTable(
     subStrandId: uuid("sub_strand_id")
       .notNull()
       .references(() => subStrands.id, { onDelete: "cascade" }),
+    contentStandardId: uuid("content_standard_id").references(
+      () => contentStandards.id,
+      { onDelete: "restrict" }
+    ),
+    releaseId: uuid("release_id").references(() => curriculumReleases.id, {
+      onDelete: "restrict",
+    }),
     code: text("code").notNull(),
     text: text("text").notNull(),
-    bloomsLevel: text("blooms_level").notNull(),
+    displayText: text("display_text"),
+    bloomsLevel: text("blooms_level"),
+    sortOrder: integer("sort_order"),
+    documentId: uuid("document_id").references(() => curriculumDocuments.id, {
+      onDelete: "restrict",
+    }),
+    pdfPage: integer("pdf_page"),
+    printedPage: text("printed_page"),
+    sourceReference: text("source_reference"),
+    extractionConfidence: text("extraction_confidence"),
+    reviewStatus: text("review_status").default("pending").notNull(),
+    ambiguityFlag: boolean("ambiguity_flag").default(false).notNull(),
+    rawSourceText: text("raw_source_text"),
     gradeId: uuid("grade_id")
       .notNull()
       .references(() => grades.id, { onDelete: "restrict" }),
@@ -124,9 +301,13 @@ export const indicators = pgTable(
     grade: text("grade").notNull(),
   },
   (table) => [
-    uniqueIndex("indicators_grade_sub_strand_code_unique").on(
+    uniqueIndex("indicators_legacy_grade_sub_strand_code_unique")
+      .on(table.gradeId, table.subStrandId, table.code)
+      .where(sql`${table.releaseId} is null`),
+    uniqueIndex("indicators_grade_sub_strand_release_code_unique").on(
       table.gradeId,
       table.subStrandId,
+      table.releaseId,
       table.code
     ),
   ]
@@ -139,11 +320,21 @@ export const indicatorExemplars = pgTable(
     indicatorId: uuid("indicator_id")
       .notNull()
       .references(() => indicators.id, { onDelete: "cascade" }),
-    code: text("code").notNull(),
+    code: text("code"),
+    label: text("label"),
     text: text("text").notNull(),
     sortOrder: integer("sort_order").notNull(),
     revision: text("revision").notNull(),
     sourceReference: text("source_reference"),
+    documentId: uuid("document_id").references(() => curriculumDocuments.id, {
+      onDelete: "restrict",
+    }),
+    pdfPage: integer("pdf_page"),
+    printedPage: text("printed_page"),
+    extractionConfidence: text("extraction_confidence"),
+    reviewStatus: text("review_status").default("pending").notNull(),
+    ambiguityFlag: boolean("ambiguity_flag").default(false).notNull(),
+    rawSourceText: text("raw_source_text"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -166,6 +357,62 @@ export const indicatorExemplars = pgTable(
   ]
 );
 
+export const curriculumGuidance = pgTable(
+  "curriculum_guidance",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    contentStandardId: uuid("content_standard_id").references(
+      () => contentStandards.id,
+      { onDelete: "cascade" }
+    ),
+    indicatorId: uuid("indicator_id").references(() => indicators.id, {
+      onDelete: "cascade",
+    }),
+    kind: text("kind").notNull(),
+    text: text("text").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+    documentId: uuid("document_id").references(() => curriculumDocuments.id, {
+      onDelete: "restrict",
+    }),
+    pdfPage: integer("pdf_page"),
+    printedPage: text("printed_page"),
+    sourceReference: text("source_reference"),
+    extractionConfidence: text("extraction_confidence"),
+    reviewStatus: text("review_status").default("pending").notNull(),
+    ambiguityFlag: boolean("ambiguity_flag").default(false).notNull(),
+    rawSourceText: text("raw_source_text"),
+  },
+  (table) => [
+    index("curriculum_guidance_indicator_order_idx").on(
+      table.indicatorId,
+      table.kind,
+      table.sortOrder
+    ),
+  ]
+);
+
+export const curriculumImportManifests = pgTable(
+  "curriculum_import_manifests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => curriculumReleases.id, { onDelete: "restrict" }),
+    checksum: text("checksum").notNull(),
+    sourceFileName: text("source_file_name").notNull(),
+    status: text("status").notNull(),
+    recordCount: integer("record_count").notNull(),
+    exemplarCount: integer("exemplar_count").notNull(),
+    importedAt: timestamp("imported_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("curriculum_import_manifests_release_checksum_unique").on(
+      table.releaseId,
+      table.checksum
+    ),
+  ]
+);
+
 export const savedLessons = pgTable("saved_lessons", {
   id: uuid("id").defaultRandom().primaryKey(),
   indicatorCode: text("indicator_code").notNull(),
@@ -175,8 +422,99 @@ export const savedLessons = pgTable("saved_lessons", {
   grade: text("grade").notNull(),
   strand: text("strand").notNull(),
   subStrand: text("sub_strand").notNull(),
+  lessonPlan: text("lesson_plan"),
   teacherNotes: text("teacher_notes").notNull(),
   visualPrompts: text("visual_prompts").notNull(),
   studentReading: text("student_reading").notNull(),
+  lessonHeader: jsonb("lesson_header"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// --- Location database (countries -> regions -> districts -> towns -> schools) ---
+// Deliberately generic (country_id everywhere) so a second country can be added
+// later without changing this schema - only its rows.
+
+export const countries = pgTable("countries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: text("code").notNull().unique(), // ISO 3166-1 alpha-2, e.g. "GH"
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const locationRegions = pgTable(
+  "location_regions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    countryId: uuid("country_id")
+      .notNull()
+      .references(() => countries.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    capital: text("capital"),
+    sourceReference: text("source_reference"),
+  },
+  (table) => [
+    uniqueIndex("location_regions_country_slug_unique").on(table.countryId, table.slug),
+    index("location_regions_name_search_idx").on(table.name),
+  ]
+);
+
+export const locationDistricts = pgTable(
+  "location_districts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    regionId: uuid("region_id")
+      .notNull()
+      .references(() => locationRegions.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    // Ghana MMDA category; kept as free text so other countries' equivalent
+    // administrative-unit terminology doesn't require a schema change.
+    category: text("category").notNull(),
+    capital: text("capital"),
+    isRegionalCapital: boolean("is_regional_capital").default(false).notNull(),
+    sourceReference: text("source_reference"),
+  },
+  (table) => [
+    uniqueIndex("location_districts_region_slug_unique").on(table.regionId, table.slug),
+    index("location_districts_name_search_idx").on(table.name),
+  ]
+);
+
+export const locationTowns = pgTable(
+  "location_towns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    districtId: uuid("district_id")
+      .notNull()
+      .references(() => locationDistricts.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    isDistrictCapital: boolean("is_district_capital").default(false).notNull(),
+    sourceReference: text("source_reference"),
+  },
+  (table) => [
+    uniqueIndex("location_towns_district_slug_unique").on(table.districtId, table.slug),
+    index("location_towns_name_search_idx").on(table.name),
+  ]
+);
+
+export const locationSchools = pgTable(
+  "location_schools",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    townId: uuid("town_id").references(() => locationTowns.id, { onDelete: "cascade" }),
+    districtId: uuid("district_id")
+      .notNull()
+      .references(() => locationDistricts.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    ownership: text("ownership"), // "public" | "private" | null if unknown
+    levelBand: text("level_band"), // "KG" | "Primary" | "JHS" | "SHS" | null if unknown
+    sourceReference: text("source_reference"),
+  },
+  (table) => [
+    uniqueIndex("location_schools_district_slug_unique").on(table.districtId, table.slug),
+    index("location_schools_name_search_idx").on(table.name),
+  ]
+);

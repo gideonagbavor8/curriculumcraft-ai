@@ -403,6 +403,20 @@ async function main() {
         .returning();
 
       gradeIds.set(grade.code, grade.id);
+
+      if ("aliases" in gradeData && gradeData.aliases) {
+        for (const alias of gradeData.aliases) {
+          await db
+            .insert(schema.gradeAliases)
+            .values({
+              gradeId: grade.id,
+              educationLevelId: level.id,
+              alias,
+              kind: "legacy",
+            })
+            .onConflictDoNothing();
+        }
+      }
     }
   }
 

@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, Printer, Download } from "lucide-react";
 import SectionCard from "@/components/lesson/SectionCard";
+import LessonHeaderTable from "@/components/lesson/LessonHeaderTable";
+import type { LessonHeader } from "@/types/curriculum";
+import type { LessonDocumentType } from "@/lib/lessonExport";
 
 interface SavedLesson {
   id: string;
@@ -12,10 +15,31 @@ interface SavedLesson {
   grade: string;
   strand: string;
   subStrand: string;
+  lessonPlan?: string | null;
   teacherNotes: string;
   visualPrompts: string;
   studentReading: string;
   createdAt: string;
+  lessonHeader?: LessonHeader | null;
+}
+
+// Older saved lessons predate the structured header column - reconstruct a
+// minimal one from the fields that do exist so the page never crashes.
+function fallbackHeader(lesson: SavedLesson): LessonHeader {
+  return {
+    curriculumSlug: "ghana-nacca-sbc",
+    levelName: "School",
+    subject: lesson.subject,
+    gradeName: lesson.grade,
+    grade: lesson.grade,
+    classSize: "-",
+    duration: "-",
+    strand: lesson.strand,
+    subStrand: lesson.subStrand,
+    indicatorCode: lesson.indicatorCode,
+    indicatorText: "",
+    reference: "Ghana NaCCA Standards-Based Curriculum (2019)",
+  };
 }
 
 export default function SavedLessonViewPage() {
@@ -26,6 +50,8 @@ export default function SavedLessonViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
+  const [activeTab, setActiveTab] = useState<"plan" | "note" | "reading" | "visual">("plan");
 //   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,116 +78,37 @@ export default function SavedLessonViewPage() {
     return () => { cancelled = true; };
   }, [id]);
 
-const handleExportPDF = async () => {
+const handleExportPDF = async (documentType: LessonDocumentType) => {
   if (!lesson) return;
   setExporting(true);
   try {
-    const jsPDFModule = await import("jspdf");
-    const jsPDF = jsPDFModule.default;
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 15;
-    const maxWidth = pageWidth - margin * 2;
-    let y = 20;
-
-    const checkPage = (needed = 10) => {
-      if (y + needed > pageHeight - 15) {
-        pdf.addPage();
-        y = 20;
-      }
-    };
-
-    const addTitle = (text: string) => {
-      checkPage(12);
-      pdf.setFontSize(13);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(20, 90, 20);
-      pdf.text(text, margin, y);
-      y += 8;
-    };
-
-    const addBody = (raw: string) => {
-      const clean = raw
-        .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .replace(/#{1,3}\s?/g, "")
-        .replace(/^-\s/gm, "• ");
-      const lines = clean.split("\n");
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(40, 40, 40);
-      lines.forEach((line) => {
-        if (!line.trim()) { y += 3; return; }
-        const wrapped = pdf.splitTextToSize(line.trim(), maxWidth);
-        wrapped.forEach((wl: string) => {
-          checkPage(6);
-          pdf.text(wl, margin, y);
-          y += 5;
-        });
-      });
-      y += 4;
-    };
-
-    const addDivider = () => {
-      checkPage(8);
-      pdf.setDrawColor(180, 220, 180);
-      pdf.line(margin, y, pageWidth - margin, y);
-      y += 6;
-    };
-
-    // Header
-    pdf.setFontSize(20);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(20, 90, 20);
-    pdf.text("CurriculumCraft AI", margin, y);
-    y += 9;
-
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(60, 60, 60);
-    pdf.text(
-      `${lesson.indicatorCode} · ${lesson.subject} · Grade ${lesson.grade} · ${lesson.strand}`,
-      margin, y
-    );
-    y += 6;
-
-    pdf.setFontSize(8);
-    pdf.setTextColor(130, 130, 130);
-    pdf.text("curriculumcraft-ai.vercel.app · Built for Ghana NaCCA JHS", margin, y);
-    y += 10;
-
-    addDivider();
-    addTitle("TEACHER NOTES");
-    addBody(lesson.teacherNotes);
-
-    addDivider();
-    addTitle("VISUAL CONTENT PROMPTS");
-    addBody(lesson.visualPrompts);
-
-    addDivider();
-    addTitle("STUDENT READING MATERIAL");
-    addBody(lesson.studentReading);
-
-    // Footer on last page
-    const totalPages = pdf.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i);
-      pdf.setFontSize(7);
-      pdf.setTextColor(160, 160, 160);
-      pdf.text(
-        `CurriculumCraft AI · Page ${i} of ${totalPages}`,
-        margin,
-        pageHeight - 8
-      );
-    }
-
-    pdf.save(`lesson-${lesson.indicatorCode}-${lesson.subject}.pdf`);
+    const { exportLessonPdf } = await import("@/lib/exportLessonPdf");
+    await exportLessonPdf({
+      header: lesson.lessonHeader ?? fallbackHeader(lesson),
+      lessonPlan: lesson.lessonPlan ?? lesson.teacherNotes,
+      lessonNote: lesson.teacherNotes,
+    }, documentType);
   } catch (err) {
     console.error("PDF export error:", err);
   } finally {
     setExporting(false);
+  }
+};
+
+const handleExportDocx = async (documentType: LessonDocumentType) => {
+  if (!lesson) return;
+  setExportingDocx(true);
+  try {
+    const { exportLessonDocx } = await import("@/lib/exportLessonDocx");
+    await exportLessonDocx({
+      header: lesson.lessonHeader ?? fallbackHeader(lesson),
+      lessonPlan: lesson.lessonPlan ?? lesson.teacherNotes,
+      lessonNote: lesson.teacherNotes,
+    }, documentType);
+  } catch (err) {
+    console.error("DOCX export error:", err);
+  } finally {
+    setExportingDocx(false);
   }
 };
 
@@ -248,42 +195,78 @@ const handleExportPDF = async () => {
 
           {/* Lesson content */}
           <div className="space-y-4">
-            <SectionCard
-              icon="📋"
-              label="Teacher Notes"
-              content={lesson.teacherNotes}
-              accentColor="green"
-            />
-            <SectionCard
-              icon="🎨"
-              label="Visual Content Prompts"
-              content={lesson.visualPrompts}
-              accentColor="amber"
-            />
-            <SectionCard
-              icon="📖"
-              label="Student Reading Material"
-              content={lesson.studentReading}
-              accentColor="blue"
-            />
+            <LessonHeaderTable header={lesson.lessonHeader ?? fallbackHeader(lesson)} />
+
+            <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 no-print">
+              {([
+                { key: "plan", label: "Lesson Plan" },
+                { key: "note", label: "Lesson Note" },
+                { key: "reading", label: "Student Reading" },
+                { key: "visual", label: "Visual Prompts" },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    activeTab === tab.key
+                      ? "bg-white dark:bg-gray-900 text-green-700 dark:text-green-400 shadow-sm"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "plan" && (
+              <SectionCard icon="📋" label="Lesson Plan" content={lesson.lessonPlan ?? lesson.teacherNotes} accentColor="green" />
+            )}
+            {activeTab === "note" && (
+              <SectionCard icon="📝" label="Lesson Note" content={lesson.teacherNotes} accentColor="green" />
+            )}
+            {activeTab === "visual" && (
+              <SectionCard icon="🎨" label="Visual Content Prompts" content={lesson.visualPrompts} accentColor="amber" />
+            )}
+            {activeTab === "reading" && (
+              <SectionCard icon="📖" label="Student Reading Material" content={lesson.studentReading} accentColor="blue" />
+            )}
           </div>
 
           {/* Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 no-print">
             <button
-              onClick={handleExportPDF}
+              onClick={() => handleExportPDF("plan")}
               disabled={exporting}
               className="flex items-center justify-center gap-2 py-3 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60"
             >
-              {exporting ? (
-                <><Loader2 size={14} className="animate-spin" />Exporting...</>
-              ) : (
-                <><Download size={14} />Export PDF</>
-              )}
+              <Download size={14} />Plan PDF
             </button>
             <button
+              onClick={() => handleExportDocx("plan")}
+              disabled={exportingDocx}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all disabled:opacity-60"
+            >
+              <Download size={14} />Plan Word
+            </button>
+            <button
+              onClick={() => handleExportPDF("note")}
+              disabled={exporting}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60"
+            >
+              <Download size={14} />Note PDF
+            </button>
+            <button
+              onClick={() => handleExportDocx("note")}
+              disabled={exportingDocx}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all disabled:opacity-60"
+            >
+              <Download size={14} />Note Word
+            </button>
+          </div>
+          <div className="no-print">
+            <button
               onClick={() => window.print()}
-              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
             >
               <Printer size={14} />
               Print
