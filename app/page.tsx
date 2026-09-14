@@ -1,27 +1,34 @@
 import Link from "next/link";
-import { BookOpen, LayoutDashboard, Zap, ArrowRight } from "lucide-react";
+import { BookOpen, LayoutDashboard, Zap, ArrowRight, CloudUpload } from "lucide-react";
+import { getCurriculumStats, formatStat } from "@/lib/curriculum/stats";
+
+// The counts come from the database, so they stay true as the import grows.
+// Re-read hourly rather than per request: the curriculum changes on the scale
+// of school terms, not page views.
+export const revalidate = 3600;
 
 const FEATURES = [
   {
-    icon: LayoutDashboard,
-    title: "Standard Map",
+    icon: CloudUpload,
+    title: "Scheme of Learning",
     description:
-      "Browse the NaCCA curriculum tree across Primary 1–6 and JHS 1–3, with imported strands, sub-strands and indicators.",
-    href: "/dashboard",
-    color: "text-blue-600 dark:text-blue-300",
-    bg: "bg-blue-50 dark:bg-blue-900/40",
-    border: "border-blue-100 dark:border-blue-700",
+      "Upload your school's termly scheme once, then generate lesson plans for a full week or just the days you teach - in the GES table format, ready to submit.",
+    href: "/scheme-of-learning",
+    color: "text-green-700 dark:text-green-300",
+    bg: "bg-green-50 dark:bg-green-900/40",
+    border: "border-green-100 dark:border-green-700",
+    featured: true,
   },
   {
     icon: BookOpen,
     title: "Lesson Builder",
     description:
-      "Select any NaCCA indicator and instantly generate teacher notes, visual content prompts and student reading materials.",
+      "Pick any single NaCCA indicator and generate one lesson from it, with teacher notes and student reading material.",
     href: "/lesson-builder",
-    color: "text-green-700 dark:text-green-300",
-    bg: "bg-green-50 dark:bg-green-900/40",
-    border: "border-green-100 dark:border-green-700",
-    featured: true,
+    color: "text-blue-600 dark:text-blue-300",
+    bg: "bg-blue-50 dark:bg-blue-900/40",
+    border: "border-blue-100 dark:border-blue-700",
+    comingSoon: true,
   },
   {
     icon: Zap,
@@ -32,17 +39,30 @@ const FEATURES = [
     color: "text-amber-600 dark:text-amber-300",
     bg: "bg-amber-50 dark:bg-amber-900/40",
     border: "border-amber-100 dark:border-amber-700",
+    comingSoon: true,
+  },
+  {
+    icon: LayoutDashboard,
+    title: "Standard Map",
+    description:
+      "Browse the whole curriculum tree - every strand, sub-strand, content standard and indicator, Basic 1 to JHS 3.",
+    href: "/dashboard",
+    color: "text-violet-600 dark:text-violet-300",
+    bg: "bg-violet-50 dark:bg-violet-900/40",
+    border: "border-violet-100 dark:border-violet-700",
+    comingSoon: true,
   },
 ];
 
-const STATS = [
-  { value: "7", label: "Subjects" },
-  { value: "9", label: "Grade levels" },
-  { value: "80+", label: "Indicators" },
-  { value: "3", label: "AI-powered views" },
-];
+export default async function HomePage() {
+  const stats = await getCurriculumStats();
+  const statCards = [
+    { value: formatStat(stats.subjects), label: "Subjects" },
+    { value: formatStat(stats.gradeLevels), label: "Class levels" },
+    { value: formatStat(stats.contentStandards), label: "Content standards" },
+    { value: formatStat(stats.indicators), label: "Indicators" },
+  ];
 
-export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hero */}
@@ -62,59 +82,60 @@ export default function HomePage() {
             <span className="text-green-300">Complete Lesson Materials</span>
           </h1>
           <p className="text-green-100 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-            AI-powered instructional design for Ghanaian Primary and JHS teachers. Generate
-            teacher notes, visual prompts and student activities from any NaCCA
-            indicator in seconds.
+            Upload your school&apos;s Scheme of Learning and get GES-format lesson plans back
+            for a full week, or for whichever days you teach - each one grounded in the NaCCA
+            curriculum, written around your own community, and ready to print or submit.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              href="/lesson-builder"
+              href="/scheme-of-learning"
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white text-green-800 font-semibold text-sm hover:bg-green-50 transition-all shadow-lg hover:shadow-xl"
             >
-              <BookOpen size={16} />
-              Start Building Lessons
+              <CloudUpload size={16} />
+              Start With Your Scheme
               <ArrowRight size={14} />
             </Link>
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/10 text-white font-semibold text-sm hover:bg-white/20 transition-all border border-white/20"
-            >
-              <LayoutDashboard size={16} />
-              Browse Curriculum
-            </Link>
           </div>
+          <p className="mt-4 text-sm text-green-200/90">
+            Upload once, then generate a full week &mdash; or just the days you teach &mdash; from it.
+          </p>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* What's actually loaded - counted from the database, not claimed */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div className="mx-auto max-w-4xl px-6 py-6">
-          <div className="grid grid-cols-4 gap-6">
-            {STATS.map((stat) => (
+        <div className="mx-auto max-w-5xl px-6 py-10">
+          <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            The full NaCCA curriculum, already imported
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+            {statCards.map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-2xl font-bold text-green-800 dark:text-green-400">
+                <div className="text-3xl font-bold tracking-tight text-green-800 dark:text-green-400 sm:text-4xl">
                   {stat.value}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
-                  {stat.label}
-                </div>
+                <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">{stat.label}</div>
               </div>
             ))}
           </div>
+          <p className="mt-7 text-center text-sm text-gray-500 dark:text-gray-400">
+            Basic 1 to JHS 3, with {formatStat(stats.strands)} strands and {formatStat(stats.subStrands)} sub-strands -
+            searchable, and already linked to the indicators your scheme names.
+          </p>
         </div>
       </div>
 
       {/* Features */}
       <div className="mx-auto max-w-4xl px-6 py-12">
         <div className="text-center mb-10">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-            Three powerful tools for teachers
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Everything you need to plan a term
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-300">
-            Everything you need to plan, teach and assess using the NaCCA curriculum
+            Start with the Scheme of Learning - the rest is being finished during the beta.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {FEATURES.map((feature) => {
             const Icon = feature.icon;
             return (
@@ -130,14 +151,19 @@ export default function HomePage() {
                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${feature.bg} mb-4`}>
                   <Icon size={20} className={feature.color} />
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-sm">
-                  {feature.title}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
+                  {feature.comingSoon && (
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                      Later in beta
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-300 leading-relaxed mb-4">
                   {feature.description}
                 </p>
-                <div className={`flex items-center gap-1 text-xs font-medium ${feature.color} group-hover:gap-2 transition-all`}>
-                  Get started <ArrowRight size={12} />
+                <div className={`flex items-center gap-1 text-sm font-medium ${feature.color} group-hover:gap-2 transition-all`}>
+                  {feature.comingSoon ? "Preview" : "Get started"} <ArrowRight size={13} />
                 </div>
               </Link>
             );
@@ -159,10 +185,10 @@ export default function HomePage() {
             their students.
           </p>
           <Link
-            href="/lesson-builder"
+            href="/scheme-of-learning"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-green-800 font-semibold text-sm hover:bg-green-50 transition-all"
           >
-            Try it now — it&apos;s free
+            Upload your scheme
             <ArrowRight size={14} />
           </Link>
         </div>

@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { KeyRound, Loader2 } from "lucide-react";
+import { BETA_FOCUS_DESTINATION, BETA_FOCUS_ON_SCHEME } from "@/lib/featureFlags";
 
 /**
  * The private-beta gate.
@@ -47,7 +48,12 @@ function clearStoredCode() {
 
 function AccessGate() {
   const searchParams = useSearchParams();
-  const destination = searchParams.get("next") || "/";
+  // Where the proxy sent them from, when that is somewhere the beta actually
+  // opens. Otherwise start everyone on the Scheme of Learning rather than the
+  // marketing page - it is the one thing we want a new tester to try first.
+  const requested = searchParams.get("next");
+  const fallback = BETA_FOCUS_ON_SCHEME ? BETA_FOCUS_DESTINATION : "/";
+  const destination = requested && requested.startsWith(BETA_FOCUS_DESTINATION) ? requested : fallback;
 
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);

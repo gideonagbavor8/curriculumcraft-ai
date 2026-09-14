@@ -68,7 +68,7 @@ export default function Footer() {
                 { label: "GitHub Copilot", icon: "🤖" },
                 { label: "Microsoft Foundry IQ", icon: "⚡" },
                 { label: "GitHub Models", icon: "🧠" },
-                { label: "Next.js 15", icon: "▲" },
+                { label: "Next.js 16", icon: "▲" },
                 { label: "Neon PostgreSQL", icon: "🗄️" },
                 { label: "Vercel", icon: "🚀" },
               ].map((item) => (
