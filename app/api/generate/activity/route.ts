@@ -6,6 +6,7 @@ import {
 } from "@/prompts/activity";
 import type { ActivityResponse } from "@/types/curriculum";
 import { getIndicatorGrounding } from "@/lib/curriculum/exemplars";
+import { getLocalContextProvider, resolveLocalContext } from "@/lib/localContext";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
       typicalAgeMax,
       curriculumSlug,
       exemplarRevision,
+      locationProfile,
+      exampleHistory,
     } = body;
 
     if (!indicatorCode || !indicatorText || !subject || !grade) {
@@ -33,6 +36,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Resolve local-context examples before the prompt is built - matches
+    // the same behaviour as /api/generate so activities use the teacher's
+    // real Region/District/Town/School instead of the hardcoded city list.
+    const provider = getLocalContextProvider(locationProfile?.countryCode ?? "GH");
+    const resolvedLocalContext = resolveLocalContext(
+      provider,
+      locationProfile,
+      exampleHistory ?? {}
+    );
 
     const grounding = await getIndicatorGrounding({
       indicatorCode,
@@ -60,6 +73,7 @@ export async function POST(request: NextRequest) {
       contentStandardCode: grounding?.contentStandardCode,
       contentStandardText: grounding?.contentStandardText,
       guidance: grounding?.guidance,
+      localContext: resolvedLocalContext,
     });
 
     const rawResponse = await generateWithClaude(
@@ -75,6 +89,7 @@ export async function POST(request: NextRequest) {
       .trim();
 
     const activityData: ActivityResponse = JSON.parse(cleaned);
+    activityData.resolvedLocalContext = resolvedLocalContext;
 
     return NextResponse.json({ success: true, data: activityData });
   } catch (error) {

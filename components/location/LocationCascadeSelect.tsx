@@ -268,12 +268,10 @@ export default function LocationCascadeSelect({
         onSelect={(item) => onChange({ ...value, community: item.name })}
       />
       <LocationField
-        label="School Name"
-        placeholder="e.g. Abutia D/A Primary School"
+        label="School Name (optional)"
+        placeholder="e.g. Abutia D/A Primary School — type freely if yours isn't listed yet"
         value={value.schoolName}
         items={schoolItems}
-        disabled={!value.district}
-        disabledHint="Pick a district first"
         onInputChange={(next) => onChange({ ...value, schoolName: next })}
         onSelect={(item) => onChange({ ...value, schoolName: item.name })}
       />

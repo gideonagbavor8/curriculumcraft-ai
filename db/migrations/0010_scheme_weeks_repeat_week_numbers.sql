@@ -1,0 +1,1 @@
+DROP INDEX "scheme_weeks_subject_week_unique";

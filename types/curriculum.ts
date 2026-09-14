@@ -169,13 +169,20 @@ export interface GenerateRequest {
   contentStandardCode?: string;
   contentStandardText?: string;
   guidance?: CurriculumGuidance[];
-  duration: "40" | "60" | "80";
-  classSize: "25" | "35" | "45" | "60";
+  // Free-entry whole numbers, not a fixed menu: a double period runs 70
+  // minutes and a JHS stream can carry 52 pupils. Validated against the bounds
+  // in components/lesson/LessonSizingFields.tsx, which the API re-checks.
+  /** Lesson length in minutes, e.g. "70". */
+  duration: string;
+  /** Number of learners in the class, e.g. "52". */
+  classSize: string;
   difficultyLevel: DifficultyLevel;
   // Optional GES lesson-plan header fields - teacher/school identity, not curriculum data.
   schoolName?: string;
   teacherName?: string;
   weekEnding?: string;
+  /** The calendar date this lesson is taught, as the Date cell of the lesson-plan table. */
+  lessonDate?: string;
   day?: string;
   // Optional local-context personalisation (see lib/localContext).
   locationProfile?: import("@/lib/localContext/types").LocationProfile;
@@ -196,6 +203,8 @@ export interface LessonHeader {
   schoolName?: string;
   teacherName?: string;
   weekEnding?: string;
+  /** The calendar date this lesson is taught, as the Date cell of the lesson-plan table. */
+  lessonDate?: string;
   day?: string;
   curriculumSlug: string;
   levelName: string;
@@ -212,11 +221,33 @@ export interface LessonHeader {
   indicatorText: string;
   performanceIndicator?: string;
   coreCompetencies?: string;
+  /** The lesson's key vocabulary, as the "Keywords" row of the lesson-plan table. */
+  keywords?: string;
   teachingLearningResources?: string;
   reference: string;
+  // Where this lesson's local examples are set, most-specific-first (School
+  // · Town · District · Region) - display-only, derived from resolvedLocalContext.
+  localContextLabel?: string;
   // True when the source indicator/content-standard text is flagged as
   // needing human review (e.g. extraction ambiguity) - never silently hidden.
   sourceNeedsReview?: boolean;
+}
+
+/**
+ * One row of the lesson-delivery half of a GES/NaCCA lesson plan: what happens
+ * when, what the learners do, and what it's taught with. Parsed out of the
+ * generated Lesson Plan so the plan can be laid out as the single table
+ * teachers actually teach from, rather than as prose under headings.
+ */
+export interface LessonPhase {
+  /** "Starter", "Main Activity", "Plenary", ... */
+  phase: string;
+  /** "5 mins" - as written by the generator, already including the unit. */
+  time: string;
+  /** Written in NaCCA exemplar voice: "Ask learners to...", "Guide learners to...". */
+  learnerActivity: string;
+  /** Teaching & learning materials for this phase specifically. */
+  resources: string;
 }
 
 export interface GenerateResponse {
@@ -235,6 +266,11 @@ export interface GenerateResponse {
   citations?: Citation[];
   foundryContext?: string;
   header: LessonHeader;
+  // The lesson's delivery phases in teaching order. Empty when the generator's
+  // output didn't carry the per-phase structure - the table then falls back to
+  // rendering the Lesson Plan's sections, so a lesson is never lost to a
+  // formatting miss.
+  phases: LessonPhase[];
   // The resolved local-context examples actually used, so the client can
   // update its rotation history to avoid repeating them next time.
   resolvedLocalContext?: import("@/lib/localContext/types").ResolvedLocalContext;
@@ -268,6 +304,9 @@ export interface ActivityResponse {
   mcqs: MCQuestion[];
   writingPrompts: WritingPrompt[];
   rubric: RubricCriterion[];
+  // The resolved local-context examples actually used, so the client can
+  // update its rotation history to avoid repeating them next time.
+  resolvedLocalContext?: import("@/lib/localContext/types").ResolvedLocalContext;
 }
 
 export interface QuizSession {

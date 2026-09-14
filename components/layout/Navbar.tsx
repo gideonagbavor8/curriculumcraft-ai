@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpen, LayoutDashboard, Zap, Library, Sun, Moon, MapPin } from "lucide-react";
+import { BookOpen, LayoutDashboard, Zap, Library, Sun, Moon, MapPin, UploadCloud } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Standard Map", icon: LayoutDashboard },
   { href: "/lesson-builder", label: "Lesson Builder", icon: BookOpen },
   { href: "/activity-suite", label: "Activity Suite", icon: Zap },
+  { href: "/scheme-of-learning", label: "Scheme of Learning", icon: UploadCloud },
   { href: "/settings", label: "Settings", icon: MapPin },
 ];
 
@@ -100,14 +101,15 @@ export default function Navbar() {
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  title={label}
+                  className={`flex items-center gap-2 px-2.5 xl:px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                     isActive
                       ? "bg-green-700 text-white shadow-sm"
                       : "text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/40 hover:text-green-800 dark:hover:text-green-300"
                   }`}
                 >
-                  <Icon size={15} />
-                  {label}
+                  <Icon size={15} className="flex-shrink-0" />
+                  <span className="hidden xl:inline">{label}</span>
                 </Link>
               );
             })}
@@ -140,21 +142,23 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile nav */}
-        <div className="grid grid-cols-3 md:hidden gap-1 pb-3">
+        {/* Mobile nav - a horizontally scrollable row (not a grid) so an
+            uneven item count or a longer label never wraps or overflows a
+            fixed-width cell; each pill keeps its own natural width. */}
+        <div className="flex md:hidden gap-1.5 pb-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {NAV_LINKS.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href;
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`flex min-w-0 items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
+                  className={`flex flex-shrink-0 items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
                     isActive
                       ? "bg-green-700 text-white"
                       : "text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-green-900/40 hover:text-green-800"
                   }`}
                 >
-                  <Icon size={13} />
+                  <Icon size={13} className="flex-shrink-0" />
                   {label}
                 </Link>
               );

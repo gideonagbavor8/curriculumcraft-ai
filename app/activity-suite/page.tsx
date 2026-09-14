@@ -5,6 +5,9 @@ import { Loader2, CheckCircle, XCircle, ChevronDown, ChevronUp } from "lucide-re
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import type { ActivityResponse, MCQuestion, WritingPrompt, RubricCriterion } from "@/types/curriculum";
 import MarkdownRenderer, { parseInlineContent } from "@/components/lesson/MarkdownRenderer";
+import { useTeacherProfile, readExampleHistory, writeExampleHistory } from "@/lib/teacherProfile";
+import LocationCascadeSelect, { type LocationCascadeValue } from "@/components/location/LocationCascadeSelect";
+import type { LocalExampleCategory } from "@/lib/localContext/types";
 
 interface SelectedIndicator {
   code: string;
@@ -138,6 +141,13 @@ export default function ActivitySuitePage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ActivityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { profile } = useTeacherProfile();
+  const [locationOverride, setLocationOverride] = useState<LocationCascadeValue>({
+    region: "",
+    district: "",
+    community: "",
+    schoolName: "",
+  });
 
   const handleGenerate = async () => {
     if (!selectedIndicator) return;
@@ -163,11 +173,30 @@ export default function ActivitySuitePage() {
           strand: selectedIndicator.strand,
           subStrand: selectedIndicator.subStrand,
           bloomsLevel: selectedIndicator.bloomsLevel,
+          locationProfile: locationOverride.region
+            ? {
+                region: locationOverride.region,
+                district: locationOverride.district || undefined,
+                community: locationOverride.community || undefined,
+                schoolName: locationOverride.schoolName || undefined,
+              }
+            : profile,
+          exampleHistory: readExampleHistory(),
         }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       setResult(data.data);
+      const used = data.data.resolvedLocalContext?.examples as Partial<Record<LocalExampleCategory, string>> | undefined;
+      if (used) {
+        const history = readExampleHistory();
+        for (const [category, value] of Object.entries(used)) {
+          if (!value) continue;
+          const prior = (history[category] ?? []).filter((item: string) => item !== value);
+          history[category] = [value, ...prior].slice(0, 4);
+        }
+        writeExampleHistory(history);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate activities");
     } finally {
@@ -195,7 +224,23 @@ export default function ActivitySuitePage() {
           <h2 className="text-xs font-semibold text-gray-400 dark:text-gray-300 uppercase tracking-wider mb-4">Select Indicator</h2>
           <SubjectSelector onSelect={setSelectedIndicator} />
           {selectedIndicator && (
-            <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700">
+            <div className="mt-5 pt-5 border-t border-gray-100 dark:border-gray-700 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">
+                  Location for local examples (optional override)
+                </label>
+                <LocationCascadeSelect value={locationOverride} onChange={setLocationOverride} />
+                {!profile.region && !locationOverride.region && (
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                    No location saved - set one in Settings, or pick Region → District → Town → School above just for this activity.
+                  </p>
+                )}
+                {profile.region && !locationOverride.region && (
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                    Using your saved location: {[profile.schoolName, profile.community, profile.district, profile.region].filter(Boolean).join(", ")}. Fill in above to override for this activity only.
+                  </p>
+                )}
+              </div>
               <button onClick={handleGenerate} disabled={loading}
                 className="w-full py-3 rounded-xl bg-green-700 hover:bg-green-800 disabled:bg-green-300 text-white font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:cursor-not-allowed flex items-center justify-center gap-2">
                 {loading ? <><Loader2 size={16} className="animate-spin" />Generating activities...</> : "⚡ Generate Activities"}

@@ -84,17 +84,17 @@ const REGIONS: RegionProfile[] = [
   },
   {
     name: "Volta",
-    aliases: ["Ho"],
+    aliases: ["Ho", "Keta"],
     examples: {
       market: ["Ho Market"],
       waterBody: ["Lake Volta", "the Keta Lagoon", "the Volta River"],
       landform: ["the Wli Waterfalls", "the Volta hills"],
       crop: ["cassava", "yam", "maize"],
       festival: ["Hogbetsotso festival"],
-      occupation: ["fishing on Lake Volta", "cassava farming", "trading"],
-      transport: ["boats on Lake Volta", "the Adomi Bridge", "trotro"],
+      occupation: ["fishing on Lake Volta", "fishing on the Keta Lagoon", "cassava farming", "trading"],
+      transport: ["boats on Lake Volta", "canoes on the Keta Lagoon", "the Adomi Bridge", "trotro"],
       landmark: ["the Adomi Bridge", "Wli Waterfalls", "Akosombo Dam"],
-      activity: ["fishing on Lake Volta", "durbar", "cassava processing"],
+      activity: ["fishing on Lake Volta", "fishing on the Keta Lagoon", "durbar", "cassava processing"],
     },
   },
   {
@@ -253,9 +253,11 @@ export const GHANA_PROVIDER: LocalContextProvider = {
   countryCode: "GH",
   countryName: "Ghana",
   regions: REGIONS,
-  // These four are the ones the task explicitly flags as over-represented in
-  // generic AI output - deprioritised (never excluded) in the fallback pool.
-  overusedRegionNames: ["Greater Accra", "Ashanti", "Central", "Western"],
+  // Deprioritised (never excluded) in the fallback pool for teachers with no
+  // saved location, since Accra, Kumasi, Cape Coast and Tema are already
+  // over-represented in generic AI output. Tema is a city within Greater
+  // Accra, so it maps to that region rather than a separate entry.
+  overusedRegionNames: ["Greater Accra", "Ashanti", "Central"],
 };
 
 export function findRegion(name: string): RegionProfile | undefined {

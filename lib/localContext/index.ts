@@ -18,3 +18,4 @@ export function getLocalContextProvider(countryCode = "GH"): LocalContextProvide
 export * from "./types";
 export { resolveLocalContext, updateHistory, pickFallbackRegion } from "./rotation";
 export { GHANA_REGION_NAMES } from "./ghana";
+export { formatLocalContextBlock, formatLocalContextLabel } from "./format";

@@ -57,6 +57,27 @@
       "when": 1789253969457,
       "tag": "0007_add_location_geography",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789322257088,
+      "tag": "0008_scheme_of_learning_upload",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789335321016,
+      "tag": "0009_scheme_subjects_and_upload_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789352540195,
+      "tag": "0010_scheme_weeks_repeat_week_numbers",
+      "breakpoints": true
     }
   ]
 }

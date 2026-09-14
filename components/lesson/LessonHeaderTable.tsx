@@ -1,4 +1,5 @@
 import type { LessonHeader } from "@/types/curriculum";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface LessonHeaderTableProps {
   header: LessonHeader;
@@ -11,9 +12,9 @@ function Row({ label, value }: { label: string; value?: string }) {
       <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
         {label}
       </span>
-      <span className="col-span-2 text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap">
-        {value}
-      </span>
+      <div className="col-span-2 text-sm text-gray-800 dark:text-gray-100">
+        <MarkdownRenderer content={value} />
+      </div>
     </div>
   );
 }
@@ -45,6 +46,7 @@ export default function LessonHeaderTable({ header }: LessonHeaderTableProps) {
         <Row label="Teacher" value={header.teacherName || "—"} />
         <Row label="Week Ending" value={header.weekEnding || "—"} />
         <Row label="Day" value={header.day || "—"} />
+        <Row label="Local Context" value={header.localContextLabel} />
         <Row label="Subject" value={header.subject} />
         <Row label="Class" value={`${header.gradeName} (${header.grade})`} />
         <Row label="Class Size" value={header.classSize} />

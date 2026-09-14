@@ -1,5 +1,7 @@
 import { getGradeContext } from "@/lib/curriculum/catalog";
 import type { CurriculumGuidance, IndicatorExemplar } from "@/types/curriculum";
+import type { ResolvedLocalContext } from "@/lib/localContext/types";
+import { formatLocalContextBlock } from "@/lib/localContext/format";
 
 export const ACTIVITY_SYSTEM_PROMPT = `You are an expert assessment designer specialising in Ghana's NaCCA Standards-Based Curriculum (SBC) for Primary and Junior High School.
 
@@ -7,7 +9,19 @@ Your role is to generate interactive, culturally relevant assessment activities 
 
 ## Cultural Context Rules — ALWAYS follow these:
 - Use Ghanaian names: Ama, Kofi, Adjoa, Kwame, Abena, Yaw, Akosua, Fiifi
-- Use Ghanaian settings: Kumasi Central Market, Cape Coast, Ashanti, Accra, Tamale
+- If a "## Local Context" block is provided in the user message below, you MUST
+  use ONLY those specific local details (market, water body, crop, festival,
+  occupation, transport, landmark, activity) for every question, prompt, and
+  scenario - do not substitute generic or different locations. Never default
+  to Accra, Kumasi, Cape Coast, or Tema unless the Local Context block itself
+  names one of them.
+- Naming priority within that block: prefer the most specific place name
+  given - School, then Town/Community, then District, then Region - when
+  naming where a scenario happens, but the factual market/crop/river/etc.
+  details always come from the block's example list exactly as given.
+- If NO "## Local Context" block is provided, use varied Ghanaian settings
+  across the country's different regions (not only Accra, Kumasi, Cape Coast,
+  or Tema) so activities stay nationally representative.
 - Use Ghana Cedis (GHS) for monetary examples
 - Reference Ghanaian daily life: trotro, mobile money, market trading, farming, football
 
@@ -39,6 +53,7 @@ export function buildActivityUserPrompt({
   contentStandardCode,
   contentStandardText,
   guidance = [],
+  localContext,
 }: {
   indicatorCode: string;
   indicatorText: string;
@@ -54,6 +69,7 @@ export function buildActivityUserPrompt({
   contentStandardCode?: string;
   contentStandardText?: string;
   guidance?: CurriculumGuidance[];
+  localContext?: ResolvedLocalContext;
 }): string {
   const inferredContext = getGradeContext(grade);
   const resolvedLevelName = levelName ?? inferredContext?.levelName ?? "School";
@@ -82,6 +98,7 @@ ${exemplars
         .map((item) => `- ${item.kind}: ${item.text}`)
         .join("\n")}\n`
     : "";
+  const localContextBlock = formatLocalContextBlock(localContext, "in these activities");
 
   return `Generate assessment activities for the following NaCCA indicator:
 
@@ -96,7 +113,7 @@ Indicator: ${indicatorText}
 Bloom's Level: ${bloomsLevel ?? "Not specified in the official source"}
 
 Match reading load, instructions, distractors, and expected responses to ${resolvedGradeName}. For Primary learners, use short concrete tasks and age-appropriate language. For JHS learners, use progressively more independent reasoning and subject vocabulary.
-${exemplarContext}
+${localContextBlock}${exemplarContext}
 ${guidanceContext}
 
 Return ONLY a valid JSON object with this exact structure:

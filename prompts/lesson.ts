@@ -1,6 +1,7 @@
 import { getGradeContext } from "@/lib/curriculum/catalog";
 import type { CurriculumGuidance, IndicatorExemplar } from "@/types/curriculum";
 import type { ResolvedLocalContext } from "@/lib/localContext/types";
+import { formatLocalContextBlock } from "@/lib/localContext/format";
 
 export const LESSON_SYSTEM_PROMPT = `You are an expert instructional designer specialising in Ghana's NaCCA Standards-Based Curriculum (SBC) for Primary and Junior High School.
 
@@ -14,6 +15,11 @@ Your role is to help Ghanaian teachers by transforming NaCCA curriculum indicato
   worked problem in this lesson - do not substitute generic or different
   locations. Never default to Accra, Kumasi, Cape Coast, or Tema unless the
   Local Context block itself names one of them.
+- Naming priority within that block: prefer the most specific place name
+  given - School, then Town/Community, then District, then Region - when
+  naming where a scenario happens (e.g. "at ... School in Keta" beats just
+  "in the Volta Region") - but the factual market/crop/river/etc. details
+  always come from the block's example list exactly as given.
 - If NO "## Local Context" block is provided, use varied Ghanaian settings
   across the country's different regions (not only Accra, Kumasi, Cape Coast,
   or Tema) so examples stay nationally representative.
@@ -59,6 +65,43 @@ LESSON PLAN is a CONCISE OUTLINE only - the skeleton a teacher prepares and
 submits in advance: 1-3 short bullet points per heading, brief phrases, no full
 explanations, no worked examples spelled out, timings included. It must fit on
 roughly one page.
+
+### Lesson delivery phases — a STRICT format
+In the LESSON PLAN only, these five headings are the lesson's delivery phases:
+Starter, Main Activity, Guided Practice, Independent Practice, Plenary. Each of
+those five must contain EXACTLY these three labelled lines, in this order, and
+nothing else:
+
+**Time:** <minutes, e.g. "5 mins"> — the five phases' times must add up to the lesson duration given below.
+**Learner Activity:** <what happens in the room>
+**TLM:** <the teaching and learning materials used in THIS phase>
+
+**Learner Activity must be written in NaCCA exemplar voice.** This is the
+single most important rule of the phase block. Every sentence is an
+instruction addressed to the teacher about what to have learners do, and
+EVERY sentence must begin with one of these openers, exactly as the NaCCA
+curriculum's own exemplars are written:
+
+  "Ask learners to ..."      "Guide learners to ..."
+  "Let learners ..."         "Have learners ..."
+  "Discuss with learners ..." "Demonstrate ..."
+  "Lead learners to ..."     "Engage learners in ..."
+  "Assist learners to ..."   "Learners in pairs/groups ..."
+
+Never start a Learner Activity sentence any other way. In particular, never
+write it from the learner's side ("Listen carefully to the song", "Sing the
+song in groups") and never narrate the teacher ("The teacher will explain",
+"Pupils are then asked to"). "Listen carefully to a short song" is WRONG;
+"Ask learners to listen carefully to a short song" is RIGHT.
+
+Keep each phase's Learner Activity to 1-3 such sentences, separated by
+semicolons or written as "- " bullets.
+
+TLM must name concrete, locally available materials (bottle tops, counters,
+number cards, manila card, charts, real objects from the community), never
+"n/a" and never a generic "teaching aids".
+
+The remaining LESSON PLAN headings keep their normal bullet-point form.
 
 LESSON NOTE is the FULL EXPANDED SCRIPT the teacher actually teaches from -
 under the SAME headings, write out complete explanations, full worked examples
@@ -177,16 +220,7 @@ ${exemplars
   const objectiveAlignment = bloomsLevel
     ? `aligned to the ${bloomsLevel} level of Bloom's Taxonomy`
     : "aligned directly to the official indicator and content standard";
-  const localContextBlock = localContext
-    ? `## Local Context (use ONLY these specific details for every example in this lesson):
-- Region: ${localContext.regionName}${localContext.district ? `, ${localContext.district} district` : ""}${localContext.community ? `, ${localContext.community}` : ""}
-${localContext.schoolName ? `- School: ${localContext.schoolName}\n` : ""}${Object.entries(localContext.examples)
-        .map(([category, value]) => `- ${category}: ${value}`)
-        .join("\n")}
-Use these as the concrete setting/objects for worked examples and scenarios -
-do not invent a different town, market, or landmark.
-`
-    : "";
+  const localContextBlock = formatLocalContextBlock(localContext, "in this lesson");
 
   return `Generate complete lesson materials for the following NaCCA indicator:
 
@@ -237,20 +271,24 @@ specific lesson.
 ### Reference Prior Knowledge
 One sentence on what learners should already know before this lesson.
 
+The next five headings are the delivery phases - each one uses the strict
+**Time:** / **Learner Activity:** / **TLM:** format described in the Output
+Structure rules above, and nothing else. The five times must total ${duration} minutes.
+
 ### Starter
-One or two bullet points naming the opening activity (about 5-10 minutes).
+The opening activity (about ${Math.round(parseInt(duration) * 0.1)} minutes).
 
 ### Main Activity
-Bullet points naming the core teaching steps (about ${Math.round(parseInt(duration) * 0.4)} minutes) - no full explanations.
+The core teaching steps (about ${Math.round(parseInt(duration) * 0.4)} minutes).
 
 ### Guided Practice
-One bullet point naming the guided/teacher-supported practice task (about ${Math.round(parseInt(duration) * 0.15)} minutes).
+The guided/teacher-supported practice task (about ${Math.round(parseInt(duration) * 0.15)} minutes).
 
 ### Independent Practice
-One bullet point naming the independent practice task (about ${Math.round(parseInt(duration) * 0.15)} minutes).
+The independent practice task (about ${Math.round(parseInt(duration) * 0.2)} minutes).
 
 ### Plenary
-One bullet point naming the closing review activity (about 5-10 minutes).
+The closing review activity (about ${Math.round(parseInt(duration) * 0.15)} minutes).
 
 ### Assessment
 One bullet point naming how the teacher checks achievement of the Performance Indicator.

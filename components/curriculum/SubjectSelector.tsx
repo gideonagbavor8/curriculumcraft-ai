@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useCurriculumCatalog } from "./useCurriculumCatalog";
+import { stripInlineMarkdown } from "@/lib/markdownBlocks";
 import type { IndicatorExemplar } from "@/types/curriculum";
 
 interface Indicator {
@@ -74,6 +75,11 @@ export default function SubjectSelector({
   const [selectedStrand, setSelectedStrand] = useState<string>(
     initialSelection?.strand ?? ""
   );
+  const [selectedSubStrand, setSelectedSubStrand] = useState<string>(
+    initialSelection?.subStrand ?? ""
+  );
+  const [indicatorQuery, setIndicatorQuery] = useState("");
+  const [isIndicatorListOpen, setIsIndicatorListOpen] = useState(false);
   const [selectedIndicatorCode, setSelectedIndicatorCode] = useState<string>(
     initialSelection?.code ?? ""
   );
@@ -112,11 +118,22 @@ export default function SubjectSelector({
   }, [subject, levelCode, grade, initialSelection]);
 
   const currentStrand = strands.find((s) => s.name === selectedStrand);
-  const allIndicators = currentStrand
-    ? currentStrand.subStrands.flatMap((ss) =>
-        ss.indicators.map((ind) => ({ ...ind, subStrand: ss.name }))
-      )
-    : [];
+  // Auto-pick the only sub-strand so a strand with just one doesn't force an
+  // extra click before the indicator search appears (derived, not stateful,
+  // so it never fights with an explicit pill click).
+  const autoSubStrandName = currentStrand?.subStrands.length === 1 ? currentStrand.subStrands[0].name : "";
+  const currentSubStrand = currentStrand?.subStrands.find(
+    (ss) => ss.name === (selectedSubStrand || autoSubStrandName)
+  );
+  const subStrandIndicators: (Indicator & { subStrand: string })[] =
+    currentSubStrand?.indicators.map((ind) => ({ ...ind, subStrand: currentSubStrand.name })) ?? [];
+  const selectedIndicator = subStrandIndicators.find((ind) => ind.code === selectedIndicatorCode);
+  const filteredIndicators = indicatorQuery.trim()
+    ? subStrandIndicators.filter((ind) => {
+        const q = indicatorQuery.trim().toLowerCase();
+        return ind.code.toLowerCase().includes(q) || stripInlineMarkdown(ind.text).toLowerCase().includes(q);
+      })
+    : subStrandIndicators;
 
   const handleIndicatorSelect = (ind: Indicator & { subStrand: string }) => {
     setSelectedIndicatorCode(ind.code);
@@ -230,7 +247,10 @@ export default function SubjectSelector({
                 key={s.name}
                 onClick={() => {
                   setSelectedStrand(s.name);
+                  setSelectedSubStrand("");
                   setSelectedIndicatorCode("");
+                  setIndicatorQuery("");
+                  setIsIndicatorListOpen(false);
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                   selectedStrand === s.name
@@ -245,56 +265,120 @@ export default function SubjectSelector({
         )}
       </div>
 
-      {/* Indicators */}
-      {!loading && selectedStrand && allIndicators.length > 0 && (
+      {/* Sub-strand pills - only shown when a strand has more than one, since a
+          single sub-strand is auto-selected above without an extra click. */}
+      {!loading && currentStrand && currentStrand.subStrands.length > 1 && (
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1.5">
+            Sub-strand
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {currentStrand.subStrands.map((ss) => (
+              <button
+                key={ss.name}
+                onClick={() => {
+                  setSelectedSubStrand(ss.name);
+                  setSelectedIndicatorCode("");
+                  setIndicatorQuery("");
+                  setIsIndicatorListOpen(false);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  selectedSubStrand === ss.name
+                    ? "bg-green-700 text-white border-green-700"
+                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-green-50 hover:text-green-800 hover:border-green-300"
+                }`}
+              >
+                {ss.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Indicator - a compact searchable combobox instead of dozens of full
+          cards, so pages with hundreds of Primary indicators stay short.
+          Once one is picked, only its details show (with a Change button). */}
+      {!loading && currentSubStrand && (
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1.5">
             Indicator
           </label>
-          <div className="space-y-2">
-            {allIndicators.map((ind) => (
-              <div
-                key={ind.code}
-                onClick={() => handleIndicatorSelect(ind)}
-                className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all border ${
-                  selectedIndicatorCode === ind.code
-                    ? "bg-green-50 border-green-400"
-                    : "bg-gray-50 border-gray-200 hover:bg-green-50/50 hover:border-green-200"
-                }`}
-              >
-                <span
-                  className={`text-[10px] font-bold px-2 py-1 rounded flex-shrink-0 mt-0.5 ${
-                    selectedIndicatorCode === ind.code
-                      ? "bg-green-700 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  {ind.code}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {ind.text}
+
+          {selectedIndicator ? (
+            <div className="flex items-start gap-3 p-3 rounded-lg border bg-green-50 border-green-400">
+              <span className="text-[10px] font-bold px-2 py-1 rounded flex-shrink-0 mt-0.5 bg-green-700 text-white">
+                {selectedIndicator.code}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-700 leading-relaxed">{stripInlineMarkdown(selectedIndicator.text)}</p>
+                {selectedIndicator.contentStandardText && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {selectedIndicator.contentStandardCode && `${selectedIndicator.contentStandardCode}: `}
+                    {stripInlineMarkdown(selectedIndicator.contentStandardText)}
                   </p>
-                  {ind.contentStandardText && (
-                    <p className="mt-1 text-xs text-gray-500">
-                      {ind.contentStandardCode && `${ind.contentStandardCode}: `}
-                      {ind.contentStandardText}
-                    </p>
-                  )}
-                  {ind.bloomsLevel && (
-                    <span
-                      className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                        BLOOMS_COLORS[ind.bloomsLevel] ||
-                        "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {ind.bloomsLevel}
-                    </span>
-                  )}
-                </div>
+                )}
+                {selectedIndicator.bloomsLevel && (
+                  <span
+                    className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                      BLOOMS_COLORS[selectedIndicator.bloomsLevel] || "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {selectedIndicator.bloomsLevel}
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
+              <button
+                onClick={() => {
+                  setSelectedIndicatorCode("");
+                  setIndicatorQuery("");
+                  setIsIndicatorListOpen(true);
+                }}
+                className="flex-shrink-0 text-xs font-medium text-green-700 hover:text-green-900 hover:underline cursor-pointer"
+              >
+                Change
+              </button>
+            </div>
+          ) : subStrandIndicators.length === 0 ? (
+            <span className="text-sm text-gray-400">No indicators available</span>
+          ) : (
+            <div className="relative">
+              <input
+                type="text"
+                value={indicatorQuery}
+                onChange={(e) => setIndicatorQuery(e.target.value)}
+                onFocus={() => setIsIndicatorListOpen(true)}
+                onBlur={() => window.setTimeout(() => setIsIndicatorListOpen(false), 150)}
+                placeholder={`Search ${subStrandIndicators.length} indicator${subStrandIndicators.length === 1 ? "" : "s"} by code or text…`}
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+              {isIndicatorListOpen && (
+                <ul className="absolute z-10 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                  {filteredIndicators.length === 0 ? (
+                    <li className="px-3 py-2 text-sm text-gray-400">No matching indicators</li>
+                  ) : (
+                    filteredIndicators.map((ind) => (
+                      <li key={ind.code}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleIndicatorSelect(ind);
+                            setIsIndicatorListOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-green-50 cursor-pointer"
+                        >
+                          <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">
+                            {ind.code}
+                          </span>
+                          <span className="truncate text-gray-700">{stripInlineMarkdown(ind.text)}</span>
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

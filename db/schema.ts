@@ -518,3 +518,98 @@ export const locationSchools = pgTable(
     index("location_schools_name_search_idx").on(table.name),
   ]
 );
+
+// Scheme of Learning upload/parse pipeline - the uploaded file is the source
+// of truth (see lib/schemeImport/*); these tables store the parsed result,
+// never the curriculum DB's own wording, so a teacher's school-specific
+// scheme is preserved verbatim even where an indicator code matches.
+//
+// One upload can contain multiple subjects (a "full school" scheme bundles
+// every subject's schedule in one file) - each subject found gets its own
+// schemeSubjects row, which owns that subject's weeks. A single-subject or
+// single-week upload just produces exactly one schemeSubjects row.
+export const schemeUploads = pgTable("scheme_uploads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  // Base64-encoded original file bytes - no external blob storage configured
+  // yet, and scheme documents are small (a few pages), so Postgres text is
+  // sufficient for now.
+  fileContentBase64: text("file_content_base64").notNull(),
+  gradeCode: text("grade_code").notNull(),
+  termLabel: text("term_label"),
+  // "full_school" (many subjects in one file) | "single_subject" (the
+  // existing/default case) | "single_week" (one week only, e.g. a photo of
+  // one page - see lib/schemeImport for how each is parsed/imported).
+  uploadKind: text("upload_kind").default("single_subject").notNull(),
+  // "pending" | "parsed" | "needs_review" | "failed"
+  parseStatus: text("parse_status").default("pending").notNull(),
+  parseWarnings: jsonb("parse_warnings").$type<string[]>().default([]).notNull(),
+  parseError: text("parse_error"),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+export const schemeSubjects = pgTable(
+  "scheme_subjects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    schemeUploadId: uuid("scheme_upload_id")
+      .notNull()
+      .references(() => schemeUploads.id, { onDelete: "cascade" }),
+    // Resolved against the curriculum DB's subjects.slug when confidently
+    // matched; null when the subject couldn't be auto-detected (full-school
+    // uploads only) - subjectLabel is always the display name either way.
+    subjectSlug: text("subject_slug"),
+    subjectLabel: text("subject_label").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  (table) => [index("scheme_subjects_upload_idx").on(table.schemeUploadId)]
+);
+
+export const schemeWeeks = pgTable(
+  "scheme_weeks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    schemeSubjectId: uuid("scheme_subject_id")
+      .notNull()
+      .references(() => schemeSubjects.id, { onDelete: "cascade" }),
+    weekNumber: integer("week_number").notNull(),
+    isNonTeachingWeek: boolean("is_non_teaching_week").default(false).notNull(),
+    nonTeachingLabel: text("non_teaching_label"),
+    // Carried forward from the last non-blank row when a school's table
+    // merges/blanks these cells across consecutive weeks of the same
+    // strand/sub-strand - see lib/schemeImport/normalizeRows.ts.
+    strandText: text("strand_text"),
+    subStrandText: text("sub_strand_text"),
+    contentStandardCode: text("content_standard_code"),
+    contentStandardText: text("content_standard_text"),
+    resourcesText: text("resources_text"),
+    rawRowText: text("raw_row_text"),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  // No unique key on (subject, week): a scheme laid out strand by strand
+  // restarts its week numbering for every strand, so one subject legitimately
+  // has several "Week 1" rows. sortOrder is what keeps them in document order.
+  (table) => [index("scheme_weeks_subject_idx").on(table.schemeSubjectId)]
+);
+
+export const schemeWeekIndicators = pgTable(
+  "scheme_week_indicators",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    schemeWeekId: uuid("scheme_week_id")
+      .notNull()
+      .references(() => schemeWeeks.id, { onDelete: "cascade" }),
+    // Exactly as printed in the uploaded scheme - never overwritten by a
+    // curriculum DB match, only annotated with one.
+    indicatorCode: text("indicator_code").notNull(),
+    indicatorText: text("indicator_text"),
+    matchedIndicatorId: uuid("matched_indicator_id").references(() => indicators.id, {
+      onDelete: "set null",
+    }),
+    // "exact" | "fuzzy" | "unmatched"
+    matchConfidence: text("match_confidence").default("unmatched").notNull(),
+    sortOrder: integer("sort_order").notNull(),
+  },
+  (table) => [index("scheme_week_indicators_week_idx").on(table.schemeWeekId)]
+);

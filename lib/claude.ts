@@ -41,6 +41,34 @@ export async function generateWithClaude(
   userPrompt: string,
   maxTokens: number = 2000
 ): Promise<string> {
+  return callFoundryChat(systemPrompt, userPrompt, maxTokens);
+}
+
+/**
+ * Same as generateWithClaude but attaches an image for a vision-capable
+ * model to read - used to transcribe a photo of a Scheme of Learning page
+ * (see lib/schemeImport/parseImage.ts) since there's no separate OCR
+ * pipeline; the chat model itself reads the image directly.
+ */
+export async function generateWithClaudeVision(
+  systemPrompt: string,
+  userPrompt: string,
+  imageBase64: string,
+  mimeType: string,
+  maxTokens: number = 2000
+): Promise<string> {
+  const content: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
+    { type: "text", text: userPrompt },
+    { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+  ];
+  return callFoundryChat(systemPrompt, content, maxTokens);
+}
+
+async function callFoundryChat(
+  systemPrompt: string,
+  userContent: string | OpenAI.Chat.Completions.ChatCompletionContentPart[],
+  maxTokens: number
+): Promise<string> {
   const client = getFoundryClient();
   const tried: string[] = [];
   let lastError: unknown;
@@ -52,7 +80,7 @@ export async function generateWithClaude(
         max_tokens: maxTokens,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "user", content: userContent },
         ],
       });
 

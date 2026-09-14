@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, LayoutDashboard, Zap } from "lucide-react";
+import { BookOpen, LayoutDashboard, Zap, UploadCloud } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -47,6 +47,10 @@ export default function Footer() {
               <Link href="/activity-suite" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
                 <Zap size={13} />
                 Activity Suite
+              </Link>
+              <Link href="/scheme-of-learning" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
+                <UploadCloud size={13} />
+                Scheme of Learning
               </Link>
               <Link href="/saved" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
                 📚 Saved Lessons

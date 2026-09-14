@@ -3,6 +3,7 @@
 import { X, ShieldCheck, Database, Cpu, Sparkles, Copy, Check } from "lucide-react";
 import { useState } from "react";
 import MarkdownRenderer from "./MarkdownRenderer";
+import { stripInlineMarkdown } from "@/lib/markdownBlocks";
 
 interface ReferenceInspectorProps {
   isOpen: boolean;
@@ -141,7 +142,7 @@ export default function ReferenceInspector({
               </div>
               <div>
                 <span className="text-[9px] uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-0.5">INDICATOR DESCRIPTION</span>
-                <p className="font-medium text-gray-900 dark:text-gray-100 leading-relaxed">{indicatorText}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100 leading-relaxed">{stripInlineMarkdown(indicatorText)}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

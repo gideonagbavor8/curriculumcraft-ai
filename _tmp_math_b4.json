@@ -1,0 +1,75 @@
+﻿{
+    "success":  true,
+    "data":  [
+                 {
+                     "id":  "c419d8c7-ed48-4b9c-a445-7a207f5dd419",
+                     "name":  "English Language",
+                     "slug":  "english-language"
+                 },
+                 {
+                     "id":  "181fb8f4-6441-4fe2-9aad-84179a167f10",
+                     "name":  "Social Studies",
+                     "slug":  "social-studies"
+                 },
+                 {
+                     "id":  "41d526a5-3359-45e8-b872-03e36b474cdd",
+                     "name":  "RME",
+                     "slug":  "rme"
+                 },
+                 {
+                     "id":  "039ad374-c236-4da5-a126-9181add58752",
+                     "name":  "Career Technology",
+                     "slug":  "career-technology"
+                 },
+                 {
+                     "id":  "295b0f98-8b84-4daa-8390-0fe91c698fbe",
+                     "name":  "Mathematics",
+                     "slug":  "mathematics"
+                 },
+                 {
+                     "id":  "301f3677-c932-4901-ac06-4c7f1b203430",
+                     "name":  "English Language",
+                     "slug":  "english"
+                 },
+                 {
+                     "id":  "bc3c9d22-fc61-44ce-a14f-3fc86ec8cdc2",
+                     "name":  "Science",
+                     "slug":  "science"
+                 },
+                 {
+                     "id":  "22d69e25-49c7-4655-b2c5-bcc2bc329b7b",
+                     "name":  "French",
+                     "slug":  "french"
+                 },
+                 {
+                     "id":  "597603e3-3376-4b12-ba38-4ccc793c32eb",
+                     "name":  "Computing",
+                     "slug":  "computing"
+                 },
+                 {
+                     "id":  "687c1fb3-64cc-479c-9f2f-530f02cb14c8",
+                     "name":  "Ghanaian Language",
+                     "slug":  "ghanaian-language"
+                 },
+                 {
+                     "id":  "ea1296b1-f951-424d-800e-4680d648da71",
+                     "name":  "History",
+                     "slug":  "history"
+                 },
+                 {
+                     "id":  "f2ccaa36-e336-4f3e-bcb3-dd4cf68d3606",
+                     "name":  "Physical Education",
+                     "slug":  "physical-education"
+                 },
+                 {
+                     "id":  "8204504f-d087-47b1-8846-9ac683b2daa5",
+                     "name":  "Our World and Our People",
+                     "slug":  "our-world-our-people"
+                 },
+                 {
+                     "id":  "d46b8950-caff-45c3-b863-5ad250ebb953",
+                     "name":  "Religious and Moral Education",
+                     "slug":  "religious-and-moral-education"
+                 }
+             ]
+}

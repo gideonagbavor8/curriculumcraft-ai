@@ -1,4 +1,4 @@
-import type { LessonHeader } from "@/types/curriculum";
+import type { LessonHeader, LessonPhase } from "@/types/curriculum";
 
 export type LessonDocumentType = "plan" | "note";
 
@@ -6,6 +6,18 @@ export interface LessonExportData {
   header: LessonHeader;
   lessonPlan: string;
   lessonNote: string;
+  /** Delivery phases for the single-table lesson-plan layout; absent on lessons generated before it existed. */
+  phases?: LessonPhase[];
+  /** Every indicator the lesson covers - a scheme week can assign several to one day. */
+  indicators?: { code: string; text?: string }[];
+}
+
+/** Names a downloaded file after the lesson it holds, not just its indicator code. */
+export function lessonFileName(lessons: LessonExportData[], documentType: LessonDocumentType, extension: string): string {
+  const first = lessons[0];
+  const subject = (first?.header.subject ?? "lesson").replace(/[^A-Za-z0-9]+/g, "-").toLowerCase();
+  const scope = lessons.length > 1 ? `${lessons.length}-days` : (first?.header.day || first?.header.indicatorCode || "lesson");
+  return `${documentType}-${subject}-${String(scope).replace(/[^A-Za-z0-9]+/g, "-").toLowerCase()}.${extension}`;
 }
 
 export const DOCUMENT_TITLES: Record<LessonDocumentType, string> = {
@@ -15,41 +27,4 @@ export const DOCUMENT_TITLES: Record<LessonDocumentType, string> = {
 
 export function contentFor(lesson: LessonExportData, documentType: LessonDocumentType) {
   return documentType === "plan" ? lesson.lessonPlan : lesson.lessonNote;
-}
-
-// Strip the constrained markdown subset the AI is instructed to use down to
-// plain text, for renderers (PDF/DOCX) that don't support markdown natively.
-export function stripMarkdown(content: string): string {
-  return content
-    .replace(/#{1,6}\s+/g, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/`(.+?)`/g, "$1")
-    .replace(/^[-*]\s+/gm, "\u2022 ");
-}
-
-export function lessonHeaderRows(header: LessonHeader): [string, string][] {
-  const contentStandard = header.contentStandardCode
-    ? `${header.contentStandardCode}: ${header.contentStandardText ?? ""}`
-    : header.contentStandardText;
-
-  const rows: [string, string | undefined][] = [
-    ["School", header.schoolName],
-    ["Teacher", header.teacherName],
-    ["Week Ending", header.weekEnding],
-    ["Day", header.day],
-    ["Subject", header.subject],
-    ["Class", `${header.gradeName} (${header.grade})`],
-    ["Class Size", header.classSize],
-    ["Duration", `${header.duration} minutes`],
-    ["Strand", header.strand],
-    ["Sub-Strand", header.subStrand],
-    ["Content Standard", contentStandard],
-    ["Indicator", `${header.indicatorCode}: ${header.indicatorText}`],
-    ["Performance Indicator", header.performanceIndicator],
-    ["Core Competencies", header.coreCompetencies],
-    ["Teaching & Learning Resources", header.teachingLearningResources],
-    ["Reference", header.reference],
-  ];
-  return rows.filter((row): row is [string, string] => Boolean(row[1]));
 }

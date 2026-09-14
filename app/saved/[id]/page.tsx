@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, Printer, Download } from "lucide-react";
 import SectionCard from "@/components/lesson/SectionCard";
-import LessonHeaderTable from "@/components/lesson/LessonHeaderTable";
+import LessonSectionTable from "@/components/lesson/LessonSectionTable";
+import LessonPlanTable from "@/components/lesson/LessonPlanTable";
 import type { LessonHeader } from "@/types/curriculum";
 import type { LessonDocumentType } from "@/lib/lessonExport";
+import { SHOW_VISUAL_PROMPTS } from "@/lib/featureFlags";
 
 interface SavedLesson {
   id: string;
@@ -195,7 +197,10 @@ const handleExportDocx = async (documentType: LessonDocumentType) => {
 
           {/* Lesson content */}
           <div className="space-y-4">
-            <LessonHeaderTable header={lesson.lessonHeader ?? fallbackHeader(lesson)} />
+            <LessonPlanTable
+              header={lesson.lessonHeader ?? fallbackHeader(lesson)}
+              lessonPlan={lesson.lessonPlan ?? undefined}
+            />
 
             <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 no-print">
               {([
@@ -203,7 +208,9 @@ const handleExportDocx = async (documentType: LessonDocumentType) => {
                 { key: "note", label: "Lesson Note" },
                 { key: "reading", label: "Student Reading" },
                 { key: "visual", label: "Visual Prompts" },
-              ] as const).map((tab) => (
+              ] as const)
+                .filter((tab) => tab.key !== "visual" || SHOW_VISUAL_PROMPTS)
+                .map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
@@ -219,10 +226,10 @@ const handleExportDocx = async (documentType: LessonDocumentType) => {
             </div>
 
             {activeTab === "plan" && (
-              <SectionCard icon="📋" label="Lesson Plan" content={lesson.lessonPlan ?? lesson.teacherNotes} accentColor="green" />
+              <LessonSectionTable icon="📋" label="Lesson Plan" content={lesson.lessonPlan ?? lesson.teacherNotes} accentColor="green" />
             )}
             {activeTab === "note" && (
-              <SectionCard icon="📝" label="Lesson Note" content={lesson.teacherNotes} accentColor="green" />
+              <LessonSectionTable icon="📝" label="Lesson Note" content={lesson.teacherNotes} accentColor="green" />
             )}
             {activeTab === "visual" && (
               <SectionCard icon="🎨" label="Visual Content Prompts" content={lesson.visualPrompts} accentColor="amber" />

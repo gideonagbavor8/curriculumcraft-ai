@@ -5,16 +5,19 @@ import { Loader2, Save, Printer, CheckCircle, Download, FileText, Wand2 } from "
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
+import LessonSectionTable from "@/components/lesson/LessonSectionTable";
 import VisualPromptCard from "@/components/lesson/VisualPromptCard";
+import { SHOW_VISUAL_PROMPTS } from "@/lib/featureFlags";
 import CitationBanner from "@/components/lesson/CitationBanner";
-import LessonHeaderTable from "@/components/lesson/LessonHeaderTable";
+import LessonPlanTable from "@/components/lesson/LessonPlanTable";
+import LessonSizingFields, { isValidDuration, isValidClassSize } from "@/components/lesson/LessonSizingFields";
 import StudentWorksheetModal from "@/components/lesson/StudentWorksheetModal";
 import ReferenceInspector from "@/components/lesson/ReferenceInspector";
 import ErrorCard from "@/components/lesson/ErrorCard";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
 import type { LessonDocumentType } from "@/lib/lessonExport";
 import { useTeacherProfile, readExampleHistory, writeExampleHistory } from "@/lib/teacherProfile";
-import { RegionSearchInput } from "@/components/location/LocationCascadeSelect";
+import LocationCascadeSelect, { type LocationCascadeValue } from "@/components/location/LocationCascadeSelect";
 import type { LocalExampleCategory } from "@/lib/localContext/types";
 
 interface SelectedIndicator {
@@ -35,18 +38,6 @@ interface SelectedIndicator {
   subStrand: string;
 }
 
-const DURATIONS = [
-  { value: "40", label: "40 minutes" },
-  { value: "60", label: "60 minutes" },
-  { value: "80", label: "80 minutes (double)" },
-];
-
-const CLASS_SIZES = [
-  { value: "25", label: "~25 students" },
-  { value: "35", label: "~35 students" },
-  { value: "45", label: "~45 students" },
-  { value: "60", label: "60+ students" },
-];
 
 
 
@@ -108,7 +99,12 @@ export default function LessonBuilderPage() {
   const [error, setError] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const { profile } = useTeacherProfile();
-  const [regionOverride, setRegionOverride] = useState("");
+  const [locationOverride, setLocationOverride] = useState<LocationCascadeValue>({
+    region: "",
+    district: "",
+    community: "",
+    schoolName: "",
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -196,10 +192,14 @@ export default function LessonBuilderPage() {
           teacherName: teacherName || undefined,
           weekEnding: weekEnding || undefined,
           day: day || undefined,
-          locationProfile: {
-            ...profile,
-            region: regionOverride || profile.region,
-          },
+          locationProfile: locationOverride.region
+            ? {
+                region: locationOverride.region,
+                district: locationOverride.district || undefined,
+                community: locationOverride.community || undefined,
+                schoolName: locationOverride.schoolName || undefined,
+              }
+            : profile,
           exampleHistory: readExampleHistory(),
         }),
       });
@@ -366,38 +366,28 @@ export default function LessonBuilderPage() {
                   </div>
                 </div>
 
-                {/* Duration + Class size */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">Lesson duration</label>
-                    <select value={duration} title="Lesson duration" onChange={(e) => setDuration(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500">
-                      {DURATIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">Class size</label>
-                    <select value={classSize} title="Class size" onChange={(e) => setClassSize(e.target.value)}
-                      className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500">
-                      {CLASS_SIZES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
-                  </div>
-                </div>
+                {/* Duration + Class size - typed, so a 70-minute double period or a class of 52 is stated exactly */}
+                <LessonSizingFields
+                  duration={duration}
+                  classSize={classSize}
+                  onDurationChange={setDuration}
+                  onClassSizeChange={setClassSize}
+                />
 
-                {/* Local context - region drives examples in the generated lesson */}
+                {/* Local context - full Region→District→Town→School cascade drives examples */}
                 <div>
-                  <RegionSearchInput
-                    value={regionOverride}
-                    onChange={setRegionOverride}
-                    placeholder={
-                      profile.region
-                        ? `Use my saved region (${profile.region}), or type another`
-                        : "No saved region - type one to vary Ghana-wide examples"
-                    }
-                  />
-                  {!profile.region && !regionOverride && (
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-300 mb-1.5">
+                    Location for local examples (optional override)
+                  </label>
+                  <LocationCascadeSelect value={locationOverride} onChange={setLocationOverride} />
+                  {!profile.region && !locationOverride.region && (
                     <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-                      No location saved - set one in Settings, or pick a region above just for this lesson.
+                      No location saved - set one in Settings, or pick Region → District → Town → School above just for this lesson.
+                    </p>
+                  )}
+                  {profile.region && !locationOverride.region && (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                      Using your saved location: {[profile.schoolName, profile.community, profile.district, profile.region].filter(Boolean).join(", ")}. Fill in above to override for this lesson only.
                     </p>
                   )}
                 </div>
@@ -427,7 +417,7 @@ export default function LessonBuilderPage() {
                   </div>
                 </div>
 
-                <button onClick={handleGenerate} disabled={loading}
+                <button onClick={handleGenerate} disabled={loading || !isValidDuration(duration) || !isValidClassSize(classSize)}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 disabled:from-green-300 disabled:to-green-200 text-white font-semibold text-sm transition-all shadow-md hover:shadow-lg hover:shadow-green-500/30 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95 duration-150">
                   {loading
                     ? <><Loader2 size={16} className="animate-spin" />Generating Lesson Materials...</>
@@ -484,7 +474,7 @@ export default function LessonBuilderPage() {
                 <hr className="mt-3 border-gray-300" />
               </div>
 
-              <LessonHeaderTable header={result.header} />
+              <LessonPlanTable header={result.header} phases={result.phases} lessonPlan={result.lessonPlan} />
 
               <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 no-print">
                 {([
@@ -492,7 +482,9 @@ export default function LessonBuilderPage() {
                   { key: "note", label: "Lesson Note" },
                   { key: "reading", label: "Student Reading" },
                   { key: "visual", label: "Visual Prompts" },
-                ] as const).map((tab) => (
+                ] as const)
+                  .filter((tab) => tab.key !== "visual" || SHOW_VISUAL_PROMPTS)
+                  .map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
@@ -508,7 +500,7 @@ export default function LessonBuilderPage() {
               </div>
 
               {activeTab === "plan" && (
-                <SectionCard
+                <LessonSectionTable
                   icon="📋"
                   label="Lesson Plan"
                   content={result.lessonPlan}
@@ -518,7 +510,7 @@ export default function LessonBuilderPage() {
                 />
               )}
               {activeTab === "note" && (
-                <SectionCard
+                <LessonSectionTable
                   icon="📝"
                   label="Lesson Note"
                   content={result.lessonNote}
