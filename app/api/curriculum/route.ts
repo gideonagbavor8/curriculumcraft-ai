@@ -16,6 +16,7 @@ import {
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { DEFAULT_CURRICULUM_SLUG } from "@/lib/curriculum/catalog";
 import { resolveGradeCode } from "@/lib/curriculum/grades";
+import { cleanCurriculumText } from "@/lib/curriculum/text";
 
 export async function GET(request: NextRequest) {
   try {
@@ -242,11 +243,11 @@ export async function GET(request: NextRequest) {
       const subStrandEntry = strandEntry.subStrands.get(row.subStrandId)!;
       const indicator = {
         code: row.indicatorCode,
-        text: row.indicatorText,
+        text: cleanCurriculumText(row.indicatorText),
         bloomsLevel: row.indicatorBlooms,
         grade: row.indicatorGrade,
         contentStandardCode: row.contentStandardCode,
-        contentStandardText: row.contentStandardText,
+        contentStandardText: cleanCurriculumText(row.contentStandardText),
         provenance: {
           documentId: row.indicatorDocumentId,
           pdfPage: row.indicatorPdfPage,
@@ -260,7 +261,7 @@ export async function GET(request: NextRequest) {
           .filter((item) => item.indicatorId === row.indicatorId)
           .map((item) => ({
             kind: item.kind,
-            text: item.text,
+            text: cleanCurriculumText(item.text),
             sortOrder: item.sortOrder,
             documentId: item.documentId,
             pdfPage: item.pdfPage,
@@ -274,7 +275,7 @@ export async function GET(request: NextRequest) {
           (exemplar) => ({
             code: exemplar.code,
             label: exemplar.label,
-            text: exemplar.text,
+            text: cleanCurriculumText(exemplar.text),
             sortOrder: exemplar.sortOrder,
             revision: exemplar.revision,
             documentId: exemplar.documentId,
@@ -292,7 +293,7 @@ export async function GET(request: NextRequest) {
       if (row.contentStandardId && row.contentStandardCode && row.contentStandardText) {
         const standard = subStrandEntry.contentStandards.get(row.contentStandardId) ?? {
           code: row.contentStandardCode,
-          text: row.contentStandardText,
+          text: cleanCurriculumText(row.contentStandardText),
           displayText: row.contentStandardDisplayText,
           sortOrder: row.contentStandardSortOrder ?? 0,
           provenance: {
@@ -308,7 +309,7 @@ export async function GET(request: NextRequest) {
             .filter((item) => item.contentStandardId === row.contentStandardId)
             .map((item) => ({
               kind: item.kind,
-              text: item.text,
+              text: cleanCurriculumText(item.text),
               sortOrder: item.sortOrder,
               documentId: item.documentId,
               pdfPage: item.pdfPage,

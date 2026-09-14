@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Loader2, Save, Printer, CheckCircle, Download, FileText, Wand2 } from "lucide-react";
+import { Loader2, Save, Printer, CheckCircle, FileText, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import SubjectSelector from "@/components/curriculum/SubjectSelector";
 import SectionCard from "@/components/lesson/SectionCard";
@@ -10,12 +10,12 @@ import VisualPromptCard from "@/components/lesson/VisualPromptCard";
 import { SHOW_VISUAL_PROMPTS } from "@/lib/featureFlags";
 import CitationBanner from "@/components/lesson/CitationBanner";
 import LessonPlanTable from "@/components/lesson/LessonPlanTable";
+import LessonDownloadPanel from "@/components/lesson/LessonDownloadPanel";
 import LessonSizingFields, { isValidDuration, isValidClassSize } from "@/components/lesson/LessonSizingFields";
 import StudentWorksheetModal from "@/components/lesson/StudentWorksheetModal";
 import ReferenceInspector from "@/components/lesson/ReferenceInspector";
 import ErrorCard from "@/components/lesson/ErrorCard";
 import type { GenerateResponse, DifficultyLevel } from "@/types/curriculum";
-import type { LessonDocumentType } from "@/lib/lessonExport";
 import { useTeacherProfile, readExampleHistory, writeExampleHistory } from "@/lib/teacherProfile";
 import LocationCascadeSelect, { type LocationCascadeValue } from "@/components/location/LocationCascadeSelect";
 import type { LocalExampleCategory } from "@/lib/localContext/types";
@@ -90,8 +90,6 @@ export default function LessonBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [exportingDocx, setExportingDocx] = useState(false);
   const [activeTab, setActiveTab] = useState<"plan" | "note" | "reading" | "visual">("plan");
   const [isWorksheetOpen, setIsWorksheetOpen] = useState(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
@@ -267,39 +265,6 @@ export default function LessonBuilderPage() {
       setSaving(false);
     }
   };
-
-  const handleExportPDF = async (documentType: LessonDocumentType) => {
-    if (!result) return;
-    setExporting(true);
-    toast.info("Preparing PDF export...");
-    try {
-      const { exportLessonPdf } = await import("@/lib/exportLessonPdf");
-      await exportLessonPdf({ header: result.header, lessonPlan: result.lessonPlan, lessonNote: result.lessonNote }, documentType);
-      toast.success("PDF downloaded!");
-    } catch (err) {
-      console.error("PDF export error:", err);
-      toast.error("PDF export failed. Try the Print button instead.");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportDocx = async (documentType: LessonDocumentType) => {
-    if (!result) return;
-    setExportingDocx(true);
-    toast.info("Preparing Word export...");
-    try {
-      const { exportLessonDocx } = await import("@/lib/exportLessonDocx");
-      await exportLessonDocx({ header: result.header, lessonPlan: result.lessonPlan, lessonNote: result.lessonNote }, documentType);
-      toast.success("Word document downloaded!");
-    } catch (err) {
-      console.error("DOCX export error:", err);
-      toast.error("Word export failed.");
-    } finally {
-      setExportingDocx(false);
-    }
-  };
-
 
   return (
     <>
@@ -538,38 +503,32 @@ export default function LessonBuilderPage() {
                 />
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
-                <button onClick={handleSave} disabled={saving || saved}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-all disabled:opacity-60 cursor-pointer">
-                  {saved ? <><CheckCircle size={14} />Saved</> : saving ? <><Loader2 size={14} className="animate-spin" />Saving...</> : <><Save size={14} />Save to Library</>}
-                </button>
-                <button onClick={() => setIsWorksheetOpen(true)}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all cursor-pointer transform hover:scale-105 active:scale-95 duration-150">
-                  <FileText size={14} />Student Worksheet
-                </button>
-                <button onClick={() => window.print()}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all cursor-pointer">
-                  <Printer size={14} />Print Lesson
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 no-print">
-                <button onClick={() => handleExportPDF("plan")} disabled={exporting}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60 cursor-pointer">
-                  {exporting ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Plan PDF</>}
-                </button>
-                <button onClick={() => handleExportDocx("plan")} disabled={exportingDocx}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all disabled:opacity-60 cursor-pointer">
-                  {exportingDocx ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Plan Word</>}
-                </button>
-                <button onClick={() => handleExportPDF("note")} disabled={exporting}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all disabled:opacity-60 cursor-pointer">
-                  {exporting ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Note PDF</>}
-                </button>
-                <button onClick={() => handleExportDocx("note")} disabled={exportingDocx}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all disabled:opacity-60 cursor-pointer">
-                  {exportingDocx ? <><Loader2 size={14} className="animate-spin" /></> : <><Download size={14} />Note Word</>}
-                </button>
+              {/* One action bar: the download controls on the left with the
+                  button they drive, the three one-off actions on the right.
+                  The four Plan/Note x PDF/Word buttons this replaces were the
+                  same action four times over. */}
+              <div className="no-print">
+                <LessonDownloadPanel
+                  lessons={[{
+                    header: result.header,
+                    lessonPlan: result.lessonPlan,
+                    lessonNote: result.lessonNote,
+                    phases: result.phases,
+                  }]}
+                >
+                  <button onClick={handleSave} disabled={saving || saved}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors disabled:opacity-60 cursor-pointer">
+                    {saved ? <><CheckCircle size={14} />Saved</> : saving ? <><Loader2 size={14} className="animate-spin" />Saving…</> : <><Save size={14} />Save</>}
+                  </button>
+                  <button onClick={() => setIsWorksheetOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer">
+                    <FileText size={14} />Worksheet
+                  </button>
+                  <button onClick={() => window.print()}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                    <Printer size={14} />Print
+                  </button>
+                </LessonDownloadPanel>
               </div>
             </div>
           )}

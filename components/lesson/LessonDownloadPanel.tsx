@@ -7,8 +7,10 @@ import type { LessonDocumentType, LessonExportData } from "@/lib/lessonExport";
 interface LessonDownloadPanelProps {
   /** The generated lessons, in teaching order. Each one's header carries the day it's taught. */
   lessons: LessonExportData[];
-  /** Label for each lesson in the scope picker - the weekday it's taught on. */
-  dayLabels: string[];
+  /** Label for each lesson in the scope picker - the weekday it's taught on. Only meaningful for a week's worth. */
+  dayLabels?: string[];
+  /** Extra actions to sit alongside the download button (print, save, worksheet). */
+  children?: React.ReactNode;
 }
 
 /** Which of the generated days go into the download. */
@@ -32,7 +34,7 @@ const DOCUMENTS: { id: LessonDocumentType; label: string; hint: string }[] = [
  * day's note to teach from - so the scope is a choice rather than a fixed
  * "download everything".
  */
-export default function LessonDownloadPanel({ lessons, dayLabels }: LessonDownloadPanelProps) {
+export default function LessonDownloadPanel({ lessons, dayLabels, children }: LessonDownloadPanelProps) {
   const [documentType, setDocumentType] = useState<LessonDocumentType>("plan");
   const [format, setFormat] = useState<ExportFormat>("pdf");
   const [scope, setScope] = useState<string>(ALL_DAYS);
@@ -62,15 +64,17 @@ export default function LessonDownloadPanel({ lessons, dayLabels }: LessonDownlo
     }
   };
 
+  // Auto-width rather than full-width: these are short menus, and stretching
+  // them across the panel turned one action into a form.
   const selectClass =
-    "w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-600/40 cursor-pointer";
+    "w-auto min-w-[8.5rem] rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-600/40 cursor-pointer";
   const labelClass = "block text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1";
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 space-y-3">
-      <h4 className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Download</h4>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3 space-y-2">
+      {/* One bar: the download controls read left to right and end in the
+          button they drive, with any other actions sitting off to the right. */}
+      <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-0">
           <span className={labelClass}>Document</span>
           <select value={documentType} onChange={(e) => setDocumentType(e.target.value as LessonDocumentType)} className={selectClass}>
@@ -89,32 +93,34 @@ export default function LessonDownloadPanel({ lessons, dayLabels }: LessonDownlo
           </select>
         </label>
 
-        <label className="min-w-0">
-          <span className={labelClass}>Days</span>
-          <select value={scope} onChange={(e) => setScope(e.target.value)} className={selectClass}>
-            <option value={ALL_DAYS}>
-              All {lessons.length} day{lessons.length === 1 ? "" : "s"}
-            </option>
-            {lessons.map((_, index) => (
-              <option key={index} value={index}>{dayLabels[index] ?? `Day ${index + 1}`} only</option>
-            ))}
-          </select>
-        </label>
-      </div>
+        {/* A single lesson has no scope to choose - the dropdown would offer one option. */}
+        {lessons.length > 1 && (
+          <label className="min-w-0">
+            <span className={labelClass}>Days</span>
+            <select value={scope} onChange={(e) => setScope(e.target.value)} className={selectClass}>
+              <option value={ALL_DAYS}>All {lessons.length} days</option>
+              {lessons.map((_, index) => (
+                <option key={index} value={index}>{dayLabels?.[index] ?? `Day ${index + 1}`} only</option>
+              ))}
+            </select>
+          </label>
+        )}
 
-      <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={handleDownload}
           disabled={exporting || selected.length === 0}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-700 hover:bg-green-800 disabled:bg-green-300 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors cursor-pointer"
         >
           {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          {exporting ? "Preparing…" : `Download ${selected.length} ${selected.length === 1 ? "lesson" : "lessons"}`}
+          {exporting ? "Preparing…" : lessons.length > 1 ? `Download ${selected.length} lessons` : "Download"}
         </button>
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          {DOCUMENTS.find((d) => d.id === documentType)?.hint}
-        </span>
+
+        {children && <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>}
       </div>
+
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        {DOCUMENTS.find((d) => d.id === documentType)?.hint}
+      </p>
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>

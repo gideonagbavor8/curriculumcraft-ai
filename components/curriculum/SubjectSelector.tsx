@@ -14,6 +14,12 @@ interface Indicator {
   contentStandardCode?: string | null;
   contentStandardText?: string | null;
   exemplars: IndicatorExemplar[];
+  /** How reliably this row came out of the NaCCA PDF - see needsSourceReview(). */
+  provenance?: {
+    extractionConfidence?: string | null;
+    reviewStatus?: string | null;
+    ambiguityFlag?: boolean | null;
+  } | null;
 }
 
 interface SubStrand {
@@ -52,6 +58,26 @@ interface SubjectSelectorProps {
   initialSelection?: SelectedIndicator | null;
 }
 
+/** Roughly three lines of the indicator card - below this the clamp never bites, so no toggle is offered. */
+const INDICATOR_CLAMP_THRESHOLD = 160;
+
+/**
+ * Whether this indicator's wording came out of the source PDF intact.
+ *
+ * Some NaCCA PDFs lay the indicator beside a narrow Core Competencies column,
+ * and the extraction interleaved the two - leaving text like "...son of God-His
+ * Personal Developme Baptism Communication and..." with words cut at the column
+ * boundary. The importer already records that as low confidence / needs-review /
+ * ambiguous; this surfaces it at the moment a teacher picks the indicator,
+ * instead of letting mangled wording look authoritative. The code stays exact
+ * either way, which is why a flagged indicator leads with its code.
+ */
+function needsSourceReview(indicator: Pick<Indicator, "provenance">): boolean {
+  const p = indicator.provenance;
+  if (!p) return false;
+  return p.ambiguityFlag === true || p.reviewStatus === "needs-review" || p.extractionConfidence === "low";
+}
+
 const BLOOMS_COLORS: Record<string, string> = {
   Remember: "bg-gray-100 text-gray-700",
   Understand: "bg-blue-100 text-blue-700",
@@ -80,6 +106,7 @@ export default function SubjectSelector({
   );
   const [indicatorQuery, setIndicatorQuery] = useState("");
   const [isIndicatorListOpen, setIsIndicatorListOpen] = useState(false);
+  const [indicatorExpanded, setIndicatorExpanded] = useState(false);
   const [selectedIndicatorCode, setSelectedIndicatorCode] = useState<string>(
     initialSelection?.code ?? ""
   );
@@ -310,9 +337,28 @@ export default function SubjectSelector({
                 {selectedIndicator.code}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-700 leading-relaxed">{stripInlineMarkdown(selectedIndicator.text)}</p>
+                {/* Clamped rather than printed in full: an extracted indicator
+                    can run to hundreds of words and would push the Change
+                    button off a phone screen. The code beside it is what a
+                    teacher looks the full wording up by, and the whole text is
+                    one tap away. */}
+                <p
+                  className={`text-sm text-gray-700 leading-relaxed ${indicatorExpanded ? "" : "line-clamp-2 sm:line-clamp-3"}`}
+                  title={stripInlineMarkdown(selectedIndicator.text)}
+                >
+                  {stripInlineMarkdown(selectedIndicator.text)}
+                </p>
+                {stripInlineMarkdown(selectedIndicator.text).length > INDICATOR_CLAMP_THRESHOLD && (
+                  <button
+                    type="button"
+                    onClick={() => setIndicatorExpanded((open) => !open)}
+                    className="mt-0.5 text-xs font-medium text-green-700 hover:text-green-900 hover:underline cursor-pointer"
+                  >
+                    {indicatorExpanded ? "Show less" : "Show full indicator"}
+                  </button>
+                )}
                 {selectedIndicator.contentStandardText && (
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 line-clamp-2">
                     {selectedIndicator.contentStandardCode && `${selectedIndicator.contentStandardCode}: `}
                     {stripInlineMarkdown(selectedIndicator.contentStandardText)}
                   </p>
@@ -331,6 +377,7 @@ export default function SubjectSelector({
                 onClick={() => {
                   setSelectedIndicatorCode("");
                   setIndicatorQuery("");
+                  setIndicatorExpanded(false);
                   setIsIndicatorListOpen(true);
                 }}
                 className="flex-shrink-0 text-xs font-medium text-green-700 hover:text-green-900 hover:underline cursor-pointer"

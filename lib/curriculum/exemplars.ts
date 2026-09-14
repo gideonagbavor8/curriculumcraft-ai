@@ -15,6 +15,7 @@ import {
 import { db } from "@/lib/db";
 import { DEFAULT_CURRICULUM_SLUG } from "./catalog";
 import { resolveGradeCode } from "./grades";
+import { cleanCurriculumText } from "./text";
 import type {
   BloomsLevel,
   CurriculumGuidance,
@@ -173,20 +174,25 @@ export async function getIndicatorGrounding({
         .orderBy(asc(curriculumGuidance.sortOrder)),
     ]);
 
+    // Cleaned here as well as on the display path: these strings are pasted
+    // straight into the generation prompt, where a Symbol-font bullet glyph is
+    // pure noise the model has to read past.
     return {
       indicatorCode: row.code,
-      indicatorText: row.text,
+      indicatorText: cleanCurriculumText(row.text),
       bloomsLevel: row.bloomsLevel as BloomsLevel | null,
       revision: resolvedRevisionForRow,
       contentStandardCode: row.contentStandardCode ?? undefined,
-      contentStandardText: row.contentStandardText ?? undefined,
+      contentStandardText: cleanCurriculumText(row.contentStandardText),
       guidance: guidanceRows.map((item) => ({
         ...item,
+        text: cleanCurriculumText(item.text),
         extractionConfidence: item.extractionConfidence as ExtractionConfidence | null,
         reviewStatus: item.reviewStatus as ReviewStatus,
       })),
       exemplars: exemplarRows.map((item) => ({
         ...item,
+        text: cleanCurriculumText(item.text),
         extractionConfidence: item.extractionConfidence as ExtractionConfidence | null,
         reviewStatus: item.reviewStatus as ReviewStatus,
       })),
