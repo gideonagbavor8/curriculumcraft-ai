@@ -21,6 +21,9 @@ import { BETA_FOCUS_DESTINATION, BETA_FOCUS_ON_SCHEME } from "@/lib/featureFlags
 
 const STORAGE_KEY = "curriculumcraft.beta-access-code";
 
+const COOKIE_REFUSED_MESSAGE =
+  "Your code is right, but this browser isn't keeping the sign-in cookie. Allow cookies for this site (or turn off tracking protection for it) and try again - a private window usually works too.";
+
 /** localStorage throws in private windows and with site data blocked, so every use is guarded. */
 function readStoredCode(): string | null {
   try {
@@ -63,6 +66,11 @@ function AccessGate() {
   const [restoring, setRestoring] = useState(true);
   const autoSubmitted = useRef(false);
 
+  // True once the server has accepted the code but the browser turned out not
+  // to be holding the pass - i.e. it refused the cookie. Without spotting this,
+  // the gate would simply reappear and look as though the button did nothing.
+  const [cookieRefused, setCookieRefused] = useState(false);
+
   const submitCode = useCallback(
     async (candidate: string, { remember }: { remember: boolean }) => {
       const res = await fetch("/api/beta-access", {
@@ -72,15 +80,25 @@ function AccessGate() {
       });
       const json = await res.json().catch(() => null);
 
-      if (res.ok && json?.success) {
-        if (remember) storeCode(candidate);
-        // A full navigation, so the proxy sees the newly set cookie.
-        window.location.replace(destination);
-        return true;
+      if (!res.ok || !json?.success) {
+        clearStoredCode();
+        throw new Error(json?.error || "That access code isn't right.");
       }
 
-      clearStoredCode();
-      throw new Error(json?.error || "That access code isn't right.");
+      if (remember) storeCode(candidate);
+
+      // Confirm the browser actually kept the cookie before sending them on.
+      // A browser with site data blocked accepts the response and drops the
+      // cookie, and the proxy would then bounce them straight back here.
+      const check = await fetch("/api/beta-access", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      if (check?.data?.gateEnabled && !check.data.unlocked) {
+        setCookieRefused(true);
+        throw new Error(COOKIE_REFUSED_MESSAGE);
+      }
+
+      // A full navigation, so the proxy sees the newly set cookie.
+      window.location.replace(destination);
+      return true;
     },
     [destination]
   );
@@ -98,10 +116,12 @@ function AccessGate() {
     }
 
     submitCode(stored, { remember: false })
-      .catch(() => {
-        // The code was rotated or revoked - fall back to asking for it.
+      .catch((err: unknown) => {
+        // The code was rotated or revoked - fall back to asking for it. A
+        // refused cookie is the one failure worth keeping on screen, since
+        // retyping the code would not help.
         setCode("");
-        setError(null);
+        setError(err instanceof Error && err.message === COOKIE_REFUSED_MESSAGE ? err.message : null);
       })
       .finally(() => setRestoring(false));
   }, [submitCode]);
@@ -156,11 +176,16 @@ function AccessGate() {
               />
               <input
                 id="access-code"
-                type="password"
+                type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 autoFocus
-                autoComplete="one-time-code"
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-1p-ignore
+                data-lpignore="true"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "access-error" : undefined}
                 placeholder="Enter code"
@@ -173,7 +198,15 @@ function AccessGate() {
             </div>
 
             {error && (
-              <p id="access-error" role="alert" className="mt-2.5 text-sm text-red-600 dark:text-red-400">
+              <p
+                id="access-error"
+                role="alert"
+                className={`mt-2.5 text-sm ${
+                  cookieRefused
+                    ? "rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 leading-relaxed text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
                 {error}
               </p>
             )}

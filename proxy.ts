@@ -49,8 +49,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except Next's own build output and static assets. Public files
-  // are matched by extension so images, fonts and the favicon still load on
-  // the access page itself.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)"],
+  // Everything except Next's own build output, Vercel's analytics script and
+  // static assets. Public files are matched by extension so images, fonts and
+  // the favicon still load on the access page itself.
+  matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)"],
 };

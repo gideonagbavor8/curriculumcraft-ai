@@ -5,6 +5,7 @@ import {
   createAccessToken,
   isBetaGateEnabled,
   isValidAccessCode,
+  isValidAccessToken,
 } from "@/lib/betaAccess";
 
 /**
@@ -47,6 +48,21 @@ function pruneAttempts(now: number) {
 function clientKey(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   return forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+}
+
+/**
+ * Whether this browser currently holds a valid pass. The access page calls
+ * this straight after a successful unlock, before sending the teacher on: if
+ * the browser refused to store the cookie (site data blocked, strict privacy
+ * settings) the pass is silently missing, and without this check the only
+ * symptom would be the gate reappearing as if the button had done nothing.
+ */
+export async function GET(request: NextRequest) {
+  const unlocked = !isBetaGateEnabled() || isValidAccessToken(request.cookies.get(BETA_ACCESS_COOKIE)?.value);
+  return NextResponse.json(
+    { success: true, data: { gateEnabled: isBetaGateEnabled(), unlocked } },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function POST(request: NextRequest) {

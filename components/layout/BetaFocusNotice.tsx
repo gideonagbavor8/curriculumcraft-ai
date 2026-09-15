@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CloudUpload, ArrowRight } from "lucide-react";
 import {
@@ -20,7 +21,22 @@ import {
  *
  * Derived from the pathname rather than hooked into every link, so typing a
  * URL is handled the same way as clicking one.
+ *
+ * Decided in the browser only, never during server rendering. The home page
+ * is statically prerendered and cached, and on Vercel a regeneration of the
+ * root route reports its pathname as "/index" rather than "/" - so the notice
+ * was being baked into the cached HTML for every visitor, covering the home
+ * page with a modal that swallowed every click. A decision that depends on
+ * the visitor's URL has no business in a cached page.
  */
+
+/** "/index" is how Next names the root route internally; a visitor only ever sees "/". */
+function normalisePathname(pathname: string): string {
+  if (pathname === "/index" || pathname === "/index/") return "/";
+  return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
+const subscribeToNothing = () => () => {};
 
 /** The page named in the notice, by the route it lives at. */
 const PAGE_LABELS: Record<string, string> = {
@@ -45,10 +61,20 @@ function isAllowed(pathname: string): boolean {
 }
 
 export default function BetaFocusNotice() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
   const router = useRouter();
+  // false during server rendering and hydration, true once running in the
+  // browser - the one place the visitor's URL can be trusted.
+  const isClient = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false
+  );
 
-  if (!BETA_FOCUS_ON_SCHEME || !pathname || isAllowed(pathname)) return null;
+  if (!BETA_FOCUS_ON_SCHEME || !isClient || !rawPathname) return null;
+
+  const pathname = normalisePathname(rawPathname);
+  if (isAllowed(pathname)) return null;
 
   const label = pageLabel(pathname);
 
