@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import BetaFocusNotice from "@/components/layout/BetaFocusNotice";
+import BetaFeedbackWidget from "@/components/layout/BetaFeedbackWidget";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -27,6 +28,7 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <Footer />
+        <BetaFeedbackWidget />
         <BetaFocusNotice />
         <Toaster
           position="bottom-right"
