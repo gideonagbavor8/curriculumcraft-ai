@@ -26,3 +26,13 @@ export const BETA_FOCUS_ON_SCHEME = true;
  */
 export const BETA_FOCUS_DESTINATION = "/scheme-of-learning";
 export const BETA_FOCUS_ALLOWED_PATHS = ["/", BETA_FOCUS_DESTINATION, "/settings", "/access"];
+
+// Beta feedback widget - the floating "Help Improve CurriculumCraft" button
+// on every page. Both destinations are Google Forms, set per deployment in
+// NEXT_PUBLIC_FEEDBACK_FORM_URL and NEXT_PUBLIC_BUG_REPORT_FORM_URL. With no
+// feedback form configured the widget stays hidden rather than offering a
+// button that leads nowhere; the bug-report link falls back to the feedback
+// form when it has no address of its own.
+export const SHOW_BETA_FEEDBACK_WIDGET = true;
+export const FEEDBACK_FORM_URL = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL?.trim() ?? "";
+export const BUG_REPORT_FORM_URL = process.env.NEXT_PUBLIC_BUG_REPORT_FORM_URL?.trim() || FEEDBACK_FORM_URL;
