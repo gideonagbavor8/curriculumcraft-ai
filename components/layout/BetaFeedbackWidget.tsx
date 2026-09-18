@@ -84,17 +84,25 @@ export default function BetaFeedbackWidget() {
   return (
     <>
       {/* The floating trigger. Bottom-right, clear of the phone's home
-          indicator, and kept small enough not to cover page content. */}
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        className="no-print fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 inline-flex items-center gap-2 rounded-full border border-green-800/20 bg-green-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-900/20 transition-all hover:bg-green-800 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 sm:px-5 sm:py-3"
-      >
-        {FEEDBACK_LABEL}
-      </button>
+          indicator, and kept small enough not to cover page content. It
+          slides into place, then keeps a slow ring-and-breathe rhythm for as
+          long as it is on screen - see the keyframes in app/globals.css. */}
+      <div className="no-print animate-feedback-arrive fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50">
+        <span
+          aria-hidden="true"
+          className="animate-feedback-pulse pointer-events-none absolute inset-0 rounded-full bg-green-500/60"
+        />
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          className="animate-feedback-breathe relative inline-flex items-center gap-2 rounded-full border border-green-800/20 bg-green-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-green-900/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-800 hover:shadow-xl hover:shadow-green-900/30 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 sm:px-5 sm:py-3"
+        >
+          {FEEDBACK_LABEL}
+        </button>
+      </div>
 
       {open && (
         <div

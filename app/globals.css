@@ -28,6 +28,65 @@
     animation: fadeUp 0.3s ease forwards;
   }
 
+  /* The beta feedback button: it slides up into place, then keeps a slow,
+     quiet rhythm for as long as it is on screen - a soft ring drifts outward
+     once every four seconds and the pill breathes a little in between. The
+     long rest between pulses is what keeps it from nagging: it reads as
+     "alive", not "urgent". Anyone who has asked their OS for reduced motion
+     gets the button standing still. */
+  @keyframes feedback-arrive {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes feedback-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.45;
+    }
+    45%,
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes feedback-breathe {
+    0%,
+    100% {
+      box-shadow: 0 10px 15px -3px rgb(20 83 45 / 0.25), 0 4px 6px -4px rgb(20 83 45 / 0.25);
+    }
+    50% {
+      box-shadow: 0 14px 24px -4px rgb(21 128 61 / 0.45), 0 6px 10px -4px rgb(21 128 61 / 0.35);
+    }
+  }
+
+  .animate-feedback-arrive {
+    animation: feedback-arrive 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+  }
+
+  .animate-feedback-pulse {
+    animation: feedback-pulse 4s cubic-bezier(0, 0, 0.2, 1) 1.2s infinite;
+  }
+
+  .animate-feedback-breathe {
+    animation: feedback-breathe 4s ease-in-out 1.2s infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-feedback-arrive,
+    .animate-feedback-pulse,
+    .animate-feedback-breathe {
+      animation: none;
+    }
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;

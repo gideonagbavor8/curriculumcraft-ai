@@ -9,6 +9,8 @@ import {
   FileText,
   Library,
   ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   PencilLine,
   Trash2,
@@ -241,8 +243,59 @@ function SchemeLibraryRow({
   );
 }
 
+/**
+ * The Scheme Library's "See more" control: a quiet full-width row at the foot
+ * of the list saying how much of the history is on show, with one action to
+ * reveal the next batch or, once everything is out, to fold it back up.
+ */
+function LibraryFooter({
+  shown,
+  total,
+  onSeeMore,
+  onShowLess,
+}: {
+  shown: number;
+  total: number;
+  onSeeMore: () => void;
+  onShowLess: () => void;
+}) {
+  const remaining = total - shown;
+  const allShown = remaining <= 0;
+
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/60 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/40">
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        Showing {shown} of {total} uploads
+      </span>
+      <button
+        type="button"
+        onClick={allShown ? onShowLess : onSeeMore}
+        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-green-700 transition-colors hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30 cursor-pointer"
+      >
+        {allShown ? (
+          <>
+            Show less <ChevronUp size={14} />
+          </>
+        ) : (
+          <>
+            See {Math.min(remaining, LIBRARY_PAGE_SIZE)} more <ChevronDown size={14} />
+          </>
+        )}
+      </button>
+    </div>
+  );
+}
+
 /** How many subject names a library row spells out before collapsing the rest into "+N more". */
 const MAX_SUBJECTS_LISTED = 4;
+
+/**
+ * How many uploads the Scheme Library shows at first, and how many each
+ * "See more" reveals. The most recent uploads are the ones a teacher comes
+ * back for; older terms and test uploads stay one click away rather than
+ * pushing the current scheme off the screen.
+ */
+const LIBRARY_PAGE_SIZE = 10;
 
 function formatUploadedAt(iso: string): string {
   const date = new Date(iso);
@@ -424,6 +477,7 @@ export default function SchemeOfLearningPage() {
   // Library list state
   const [library, setLibrary] = useState<LibraryEntry[] | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(true);
+  const [libraryVisible, setLibraryVisible] = useState(LIBRARY_PAGE_SIZE);
   const [view, setView] = useState<"library" | "upload" | "scheme">("library");
 
   // Upload form state
@@ -696,16 +750,29 @@ export default function SchemeOfLearningPage() {
               </div>
             )}
             {library && library.length > 0 && (
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
-                {library.map((entry) => (
-                  <SchemeLibraryRow
-                    key={entry.id}
-                    entry={entry}
-                    gradeLabel={gradeLabel(entry.gradeCode)}
-                    onOpen={() => openScheme(entry.id)}
-                    onDelete={() => deleteScheme(entry.id)}
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {library.slice(0, libraryVisible).map((entry) => (
+                    <SchemeLibraryRow
+                      key={entry.id}
+                      entry={entry}
+                      gradeLabel={gradeLabel(entry.gradeCode)}
+                      onOpen={() => openScheme(entry.id)}
+                      onDelete={() => deleteScheme(entry.id)}
+                    />
+                  ))}
+                </div>
+
+                {/* Only when there is history beyond the first page - a
+                    library of three uploads needs no footer at all. */}
+                {library.length > LIBRARY_PAGE_SIZE && (
+                  <LibraryFooter
+                    shown={Math.min(libraryVisible, library.length)}
+                    total={library.length}
+                    onSeeMore={() => setLibraryVisible((n) => n + LIBRARY_PAGE_SIZE)}
+                    onShowLess={() => setLibraryVisible(LIBRARY_PAGE_SIZE)}
                   />
-                ))}
+                )}
               </div>
             )}
           </div>
