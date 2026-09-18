@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { CloudUpload, ArrowRight } from "lucide-react";
+import { CloudUpload, ArrowRight, BookOpen } from "lucide-react";
 import {
   BETA_FOCUS_ON_SCHEME,
   BETA_FOCUS_DESTINATION,
@@ -10,7 +10,8 @@ import {
 } from "@/lib/featureFlags";
 
 /**
- * Steers beta testers to the Scheme of Learning.
+ * Steers beta testers to the pages the beta has opened - the Scheme of
+ * Learning and the Lesson Builder.
  *
  * The other pages stay in the navigation and stay reachable on purpose - a
  * teacher can see what is coming and is trusted to look. What they get instead
@@ -76,6 +77,12 @@ export default function BetaFocusNotice() {
   const pathname = normalisePathname(rawPathname);
   if (isAllowed(pathname)) return null;
 
+  // A click anywhere outside the card is a "no thanks" - the card goes, and
+  // so does the visitor, back to the Scheme of Learning. Simply hiding the
+  // card would open the page behind it, which is the one thing the beta
+  // does not do.
+  const leave = () => router.replace(BETA_FOCUS_DESTINATION);
+
   const label = pageLabel(pathname);
 
   return (
@@ -83,37 +90,52 @@ export default function BetaFocusNotice() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="beta-focus-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-sm"
+      className="animate-modal-backdrop fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) leave();
+      }}
     >
-      <div className="flex min-h-full items-center justify-center px-5 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl sm:p-7 dark:border-gray-700 dark:bg-gray-900">
+      <div
+        className="flex min-h-full items-center justify-center px-5 py-12"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) leave();
+        }}
+      >
+        <div className="animate-modal-card w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl sm:p-7 dark:border-gray-700 dark:bg-gray-900">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/40">
             <CloudUpload size={22} className="text-green-700 dark:text-green-300" />
           </div>
 
           <h2 id="beta-focus-title" className="mt-5 text-xl font-bold text-gray-900 dark:text-gray-100">
-            {label} is still being finished
+            {label} is coming soon
           </h2>
           <p className="mt-2.5 text-base leading-relaxed text-gray-600 dark:text-gray-300">
-            Thanks for exploring — you found a part of CurriculumCraft we haven&apos;t opened up yet.
-            While the beta runs, everything is going into the <strong className="font-semibold">Scheme
-            of Learning</strong>: upload your school&apos;s scheme once and generate GES-format
-            lesson plans for a full week, or just the days you teach.
-          </p>
-          <p className="mt-2.5 text-base leading-relaxed text-gray-600 dark:text-gray-300">
-            {label} will open up soon, and what you build now will still be here when it does.
+            Two tools are open during the beta: the{" "}
+            <strong className="font-semibold">Scheme of Learning</strong> — upload your scheme and
+            generate a week of GES lesson plans — and the{" "}
+            <strong className="font-semibold">Lesson Builder</strong> — build a lesson from any NaCCA
+            indicator, Basic 1 to JHS 3.
           </p>
 
           <button
             onClick={() => router.replace(BETA_FOCUS_DESTINATION)}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-green-700 py-3.5 text-base font-semibold text-white transition-colors hover:bg-green-800"
           >
+            <CloudUpload size={17} />
             Go to Scheme of Learning
+            <ArrowRight size={17} />
+          </button>
+          <button
+            onClick={() => router.replace("/lesson-builder")}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-green-300 bg-green-50 py-3 text-base font-semibold text-green-800 transition-colors hover:bg-green-100 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
+          >
+            <BookOpen size={17} />
+            Go to Lesson Builder
             <ArrowRight size={17} />
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-400 dark:text-gray-500">
-            Got feedback on what you&apos;d like next? We&apos;d love to hear it.
+            Tap anywhere outside to go back to the Scheme of Learning.
           </p>
         </div>
       </div>

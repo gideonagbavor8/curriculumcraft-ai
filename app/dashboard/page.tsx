@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { useCurriculumCatalog } from "@/components/curriculum/useCurriculumCatalog";
+import { subjectsTaughtAt } from "@/lib/curriculum/catalog";
 import type { IndicatorExemplar } from "@/types/curriculum";
 
 interface Indicator {
@@ -192,6 +193,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const currentLevel = catalog?.levels.find((level) => level.code === levelCode);
+  const subjectsForLevel = subjectsTaughtAt(catalog, levelCode);
 
   useEffect(() => {
     let cancelled = false;
@@ -307,6 +309,9 @@ export default function DashboardPage() {
                   );
                   setLevelCode(event.target.value);
                   setGrade(nextLevel?.grades[0]?.code ?? "");
+                  // A subject not taught at the new level gives way to one that is.
+                  const taught = subjectsTaughtAt(catalog, event.target.value);
+                  if (taught.length > 0 && !taught.some((item) => item.slug === subject)) setSubject(taught[0].slug);
                 }}
                 disabled={!catalog}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-60"
@@ -328,7 +333,7 @@ export default function DashboardPage() {
                 onChange={(e) => setSubject(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
               >
-                {catalog?.subjects.map((item) => (
+                {subjectsForLevel.map((item) => (
                   <option key={item.slug} value={item.slug}>
                     {item.name}
                   </option>

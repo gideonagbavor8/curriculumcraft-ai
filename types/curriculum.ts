@@ -46,7 +46,8 @@ export interface CurriculumCatalog {
     version: string;
   };
   levels: EducationLevel[];
-  subjects: Pick<Subject, "id" | "name" | "slug">[];
+  /** Each subject with the level codes it has indicators for, so a selector can list only the subjects taught at the chosen level. */
+  subjects: (Pick<Subject, "id" | "name" | "slug"> & { levels: string[] })[];
 }
 
 export interface Subject {

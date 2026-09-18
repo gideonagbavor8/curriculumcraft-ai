@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useCurriculumCatalog } from "./useCurriculumCatalog";
+import { subjectsTaughtAt } from "@/lib/curriculum/catalog";
 import { stripInlineMarkdown } from "@/lib/markdownBlocks";
 import type { IndicatorExemplar } from "@/types/curriculum";
 
@@ -112,6 +113,7 @@ export default function SubjectSelector({
   );
   const [loading, setLoading] = useState(true);
   const currentLevel = catalog?.levels.find((level) => level.code === levelCode);
+  const subjectsForLevel = subjectsTaughtAt(catalog, levelCode);
   const currentGrade = currentLevel?.grades.find((item) => item.code === grade);
 
   useEffect(() => {
@@ -204,6 +206,9 @@ export default function SubjectSelector({
               );
               setLevelCode(event.target.value);
               setGrade(nextLevel?.grades[0]?.code ?? "");
+              // A subject not taught at the new level gives way to one that is.
+              const taught = subjectsTaughtAt(catalog, event.target.value);
+              if (taught.length > 0 && !taught.some((item) => item.slug === subject)) setSubject(taught[0].slug);
             }}
             disabled={!catalog}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 disabled:opacity-60"
@@ -225,7 +230,7 @@ export default function SubjectSelector({
             onChange={(e) => setSubject(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
           >
-            {catalog?.subjects.map((item) => (
+            {subjectsForLevel.map((item) => (
               <option key={item.slug} value={item.slug}>
                 {item.name}
               </option>

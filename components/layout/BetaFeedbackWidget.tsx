@@ -106,7 +106,7 @@ export default function BetaFeedbackWidget() {
 
       {open && (
         <div
-          className="no-print fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-4 backdrop-blur-sm sm:items-center"
+          className="no-print animate-modal-backdrop fixed inset-0 z-50 flex items-end justify-center bg-gray-900/50 p-4 backdrop-blur-sm sm:items-center"
           onMouseDown={(event) => {
             // A click on the backdrop closes; a click inside the panel does not.
             if (event.target === event.currentTarget) close();
@@ -118,7 +118,7 @@ export default function BetaFeedbackWidget() {
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
-            className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-900 sm:p-7"
+            className="animate-modal-card w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-900 sm:p-7"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-50 dark:bg-green-900/40">

@@ -149,6 +149,32 @@ the same reviewed artifact to production.
    removing the legacy indicator grade column. This is intentionally not part of the
    compatibility migration.
 
+## JHS (Common Core Programme) Releases
+
+The JHS curriculum is imported from the twelve 2021 CCP books on
+nacca.gov.gh/common-core-programme, one approved release per subject
+(`2021-ccp-jhs-<key>`), by `db/extract-jhs-ccp.ts`. The CCP books share a
+three-column table (content standard | indicators and exemplars | core
+competencies) that differs from the 2019 Primary layout, so they have their own
+extractor; it normalises the books' numbering typographies ("B7.1.1.1.1",
+"B7 1.1.1.1", "B7/JHS1.1.1.1.1"), measures the column edges from where the codes
+sit on each page, and keeps every numbered indicator - flagging rather than
+dropping the ones it cannot settle (a code the book reuses, a heading the book
+omits, a six-part reference, competency wording bled into a cell).
+
+The first seed's JHS placeholder rows (67 indicators, no release) are kept.
+`GET /api/curriculum` serves release-backed rows wherever a release covers the
+grade and falls back to the placeholders only where none does. Two seed slugs
+were superseded by the official subjects - `english-language` by `english` and
+`rme` by `religious-and-moral-education` (the slugs the Primary releases already
+used); `lib/curriculum/catalog.ts` hides the superseded slugs from the catalog
+and answers requests for them with the replacement.
+
+`npm run curriculum:validate -- --level JHS` reports, per subject and release,
+the B7/B8/B9 counts, exemplars, needs-review rows and blank fields, and runs
+cross-subject checks for missing grades, duplicate codes, orphans, invalid
+grade relationships and heading or footer text left inside a row.
+
 ## Future Extensions
 
 SHS and TVET require data rows, not schema changes. A different national curriculum

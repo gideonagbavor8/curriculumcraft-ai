@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { KeyRound, Loader2 } from "lucide-react";
-import { BETA_FOCUS_DESTINATION, BETA_FOCUS_ON_SCHEME } from "@/lib/featureFlags";
+import { BETA_FOCUS_ALLOWED_PATHS, BETA_FOCUS_DESTINATION, BETA_FOCUS_ON_SCHEME } from "@/lib/featureFlags";
 
 /**
  * The private-beta gate.
@@ -49,6 +49,13 @@ function clearStoredCode() {
   }
 }
 
+/** Whether a "next" path is one the beta actually opens - the front door aside, which is never worth landing on after entering a code. */
+function isOpenDuringBeta(path: string): boolean {
+  return BETA_FOCUS_ALLOWED_PATHS.some(
+    (allowed) => allowed !== "/" && allowed !== "/access" && (path === allowed || path.startsWith(`${allowed}/`) || path.startsWith(`${allowed}?`))
+  );
+}
+
 function AccessGate() {
   const searchParams = useSearchParams();
   // Where the proxy sent them from, when that is somewhere the beta actually
@@ -56,7 +63,8 @@ function AccessGate() {
   // marketing page - it is the one thing we want a new tester to try first.
   const requested = searchParams.get("next");
   const fallback = BETA_FOCUS_ON_SCHEME ? BETA_FOCUS_DESTINATION : "/";
-  const destination = requested && requested.startsWith(BETA_FOCUS_DESTINATION) ? requested : fallback;
+  const destination =
+    requested && isOpenDuringBeta(requested) ? requested : fallback;
 
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);

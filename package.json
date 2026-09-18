@@ -13,7 +13,9 @@
     "db:studio": "drizzle-kit studio",
     "curriculum:import": "tsx db/import-curriculum.ts",
     "curriculum:extract-primary-math": "tsx db/extract-primary-mathematics.ts",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "curriculum:extract-jhs": "tsx db/extract-jhs-ccp.ts",
+    "curriculum:validate": "tsx db/validate-curriculum.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
