@@ -30,14 +30,13 @@ export default function RootLayout({
         <Footer />
         <BetaFeedbackWidget />
         <BetaFocusNotice />
+        {/* Errors and small confirmations. Finished generations get their own
+            card (components/lesson/GeneratedNotice) instead of a toast. */}
         <Toaster
-          position="bottom-right"
+          position="top-center"
           toastOptions={{
-            style: {
-              background: "var(--color-background-primary)",
-              border: "1px solid var(--color-border-tertiary)",
-              color: "var(--color-text-primary)",
-            },
+            className:
+              "!rounded-xl !border !border-gray-200 !bg-white !text-gray-900 !shadow-lg dark:!border-gray-700 dark:!bg-gray-900 dark:!text-gray-100",
           }}
         />
         <Analytics />

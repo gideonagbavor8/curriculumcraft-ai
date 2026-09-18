@@ -1,99 +1,98 @@
 import Link from "next/link";
-import { BookOpen, LayoutDashboard, Zap, UploadCloud } from "lucide-react";
+import { BUG_REPORT_FORM_URL, FEEDBACK_FORM_URL } from "@/lib/featureFlags";
+
+/**
+ * The site footer: the product's own map of itself, in three short columns.
+ *
+ * Every entry is a real destination. Feedback and bug reports go to the same
+ * forms the floating feedback widget uses, and open in a new tab so a
+ * half-built lesson is never lost to the click.
+ */
+
+interface FooterItem {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+const PRODUCT: FooterItem[] = [
+  { label: "Lesson Builder", href: "/lesson-builder" },
+  { label: "Scheme of Learning", href: "/scheme-of-learning" },
+  { label: "Activities & Exercises", href: "/activity-suite" },
+  // Student reading passages and worksheets are produced by the Lesson
+  // Builder; assessment tasks and rubrics by the Activity Suite.
+  { label: "Student Materials", href: "/lesson-builder" },
+  { label: "Assessments", href: "/activity-suite" },
+];
+
+const RESOURCES: FooterItem[] = [
+  { label: "Curriculum", href: "/dashboard" },
+  ...(FEEDBACK_FORM_URL ? [{ label: "Feedback", href: FEEDBACK_FORM_URL, external: true }] : []),
+  ...(BUG_REPORT_FORM_URL ? [{ label: "Report a Bug", href: BUG_REPORT_FORM_URL, external: true }] : []),
+];
+
+const COMPANY: FooterItem[] = [
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+];
+
+function FooterColumn({ title, items }: { title: string; items: FooterItem[] }) {
+  return (
+    <div>
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-900 dark:text-white">{title}</h3>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item.label}>
+            {item.external ? (
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 transition-colors hover:text-green-700 dark:text-gray-300 dark:hover:text-green-400"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                href={item.href}
+                className="text-xs text-gray-500 transition-colors hover:text-green-700 dark:text-gray-300 dark:hover:text-green-400"
+              >
+                {item.label}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function Footer() {
   return (
-    <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 mt-auto">
+    <footer className="mt-auto border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
       <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-
-          {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-700 text-white text-sm font-bold">
+        <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-5">
+          {/* Brand - full width on phones, two columns on wide screens */}
+          <div className="col-span-2 sm:col-span-4 lg:col-span-2">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-700 text-sm font-bold text-white">
                 CC
               </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                CurriculumCraft AI
-              </span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">CurriculumCraft AI</span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-300 leading-relaxed mb-4">
-              AI-powered instructional design for Ghanaian Primary and JHS teachers. Built on the NaCCA Standards-Based Curriculum.
+            <p className="max-w-xs text-xs leading-relaxed text-gray-500 dark:text-gray-300">
+              AI-powered teaching tools built for educators.
             </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                🇬🇭 Ghana Primary & JHS
-              </span>
-              <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700">
-                NaCCA SBC
-              </span>
-            </div>
           </div>
 
-          {/* Links */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-3">
-              Tools
-            </h3>
-            <div className="space-y-2">
-              <Link href="/dashboard" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
-                <LayoutDashboard size={13} />
-                Standard Map
-              </Link>
-              <Link href="/lesson-builder" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
-                <BookOpen size={13} />
-                Lesson Builder
-              </Link>
-              <Link href="/activity-suite" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
-                <Zap size={13} />
-                Activity Suite
-              </Link>
-              <Link href="/scheme-of-learning" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
-                <UploadCloud size={13} />
-                Scheme of Learning
-              </Link>
-              <Link href="/saved" className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">
-                📚 Saved Lessons
-              </Link>
-            </div>
-          </div>
-
-          {/* Built with */}
-          <div>
-            <h3 className="text-xs font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-3">
-              Built with
-            </h3>
-            <div className="space-y-2">
-              {[
-                { label: "GitHub Copilot", icon: "🤖" },
-                { label: "Microsoft Foundry IQ", icon: "⚡" },
-                { label: "GitHub Models", icon: "🧠" },
-                { label: "Next.js 16", icon: "▲" },
-                { label: "Neon PostgreSQL", icon: "🗄️" },
-                { label: "Vercel", icon: "🚀" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
-                  <span>{item.icon}</span>
-                  {item.label}
-                </div>
-              ))}
-            </div>
-          </div>
+          <FooterColumn title="Product" items={PRODUCT} />
+          <FooterColumn title="Resources" items={RESOURCES} />
+          <FooterColumn title="Company" items={COMPANY} />
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center sm:text-left">
-            © 2026 CurriculumCraft AI · Built for the{" "}
-            <span className="text-green-600 dark:text-green-400 font-medium">
-              Microsoft Agents League Hackathon
-            </span>
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center sm:text-right">
-            Made with ❤️ for Ghana&apos;s teachers by{" "}
-            <span className="text-gray-600 dark:text-gray-300 font-medium">
-              Gideon Komla Agbavor
-            </span>
+        <div className="mt-8 border-t border-gray-100 pt-6 dark:border-gray-800">
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 sm:text-left">
+            © 2026 CurriculumCraft AI. Built for teachers. 🇬🇭
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { generateWithClaude, foundryRoot, CLAUDE_MODEL } from "@/lib/claude";
 import { LESSON_SYSTEM_PROMPT, buildLessonUserPrompt } from "@/prompts/lesson";
+import { SHOW_VISUAL_PROMPTS } from "@/lib/featureFlags";
 import type { GenerateRequest, GenerateResponse, Citation, LessonHeader } from "@/types/curriculum";
 import { getIndicatorGrounding } from "@/lib/curriculum/exemplars";
 import { getGradeContext } from "@/lib/curriculum/catalog";
@@ -69,6 +70,60 @@ What are the key concepts, teaching considerations, and expected student outcome
     console.warn("Foundry IQ unavailable, proceeding without grounding:", error);
     return { context: null, citation: null };
   }
+}
+
+const PLAN_MARKER = "---LESSON PLAN---";
+const VISUAL_MARKER = "---VISUAL CONTENT PROMPTS---";
+const READING_MARKER = "---STUDENT READING MATERIAL---";
+
+/**
+ * Runs the lesson as two model calls side by side instead of one long one.
+ * The model writes at a fixed rate, so a 3,000-token lesson is a 25-second
+ * wait however it is asked for; asking for the plan and note in one call and
+ * the student reading in another cuts the wall time to the longer of the
+ * two. The plan and note stay together on purpose - they describe the same
+ * lesson under the same headings, and the note must expand the plan, not a
+ * different lesson. The two answers are joined back into the four-section
+ * text the parser has always read.
+ */
+async function generateLessonSections(userPrompt: string): Promise<string> {
+  const planAt = userPrompt.indexOf(PLAN_MARKER);
+  const visualAt = userPrompt.indexOf(VISUAL_MARKER);
+  const readingAt = userPrompt.indexOf(READING_MARKER);
+  if (planAt < 0 || visualAt < 0 || readingAt < 0) {
+    return generateWithClaude(LESSON_SYSTEM_PROMPT, userPrompt, 3200);
+  }
+
+  const context = userPrompt.slice(0, planAt);
+  const planAndNote = userPrompt.slice(planAt, visualAt);
+  // The visual prompts are only written when the app will show them.
+  const readingPart = SHOW_VISUAL_PROMPTS ? userPrompt.slice(visualAt) : userPrompt.slice(readingAt);
+  const readingMarkers = SHOW_VISUAL_PROMPTS ? `${VISUAL_MARKER} and ${READING_MARKER}` : READING_MARKER;
+
+  const [planAndNoteText, readingText] = await Promise.all([
+    generateWithClaude(
+      LESSON_SYSTEM_PROMPT,
+      `${context}For this request, return ONLY the ${PLAN_MARKER} and ---LESSON NOTE--- sections, starting with ${PLAN_MARKER}. Do not write the visual content prompts or the student reading material.\n\n${planAndNote}`,
+      2600
+    ),
+    generateWithClaude(
+      LESSON_SYSTEM_PROMPT,
+      `${context}For this request, return ONLY the ${readingMarkers} section${SHOW_VISUAL_PROMPTS ? "s" : ""}, starting with the marker. Do not write the lesson plan or the lesson note.\n\n${readingPart}`,
+      1400
+    ),
+  ]);
+
+  // Keep only what each call was asked for, whichever extra sections it wrote.
+  const planNoteEnd = [planAndNoteText.indexOf(VISUAL_MARKER), planAndNoteText.indexOf(READING_MARKER)].filter((at) => at >= 0);
+  const planNote = planNoteEnd.length ? planAndNoteText.slice(0, Math.min(...planNoteEnd)) : planAndNoteText;
+  const readingStart = SHOW_VISUAL_PROMPTS ? readingText.indexOf(VISUAL_MARKER) : readingText.indexOf(READING_MARKER);
+  const reading = readingStart >= 0 ? readingText.slice(readingStart) : readingText;
+  // With the visual prompts switched off the parser still expects the
+  // section, so it gets a placeholder rather than a model call.
+  const visualFiller = SHOW_VISUAL_PROMPTS ? "" : `${VISUAL_MARKER}\n(not generated)\n`;
+  const readingWithMarker =
+    reading.startsWith(VISUAL_MARKER) || reading.startsWith(READING_MARKER) ? reading : `${READING_MARKER}\n${reading}`;
+  return `${planNote.trim()}\n${visualFiller}${readingWithMarker.trim()}`;
 }
 
 // Parse Claude's response into four sections
@@ -141,6 +196,7 @@ export async function generateLessonForIndicator(body: GenerateRequest): Promise
   const provider = getLocalContextProvider(locationProfile?.countryCode ?? "GH");
   const resolvedLocalContext = resolveLocalContext(provider, locationProfile, exampleHistory ?? {});
 
+  const groundingStartedAt = Date.now();
   const [foundry, grounding] = await Promise.all([
     getFoundryContext(indicatorCode, indicatorText, subject),
     getIndicatorGrounding({
@@ -183,8 +239,12 @@ export async function generateLessonForIndicator(body: GenerateRequest): Promise
     localContext: resolvedLocalContext,
   });
 
-  const rawResponse = await generateWithClaude(LESSON_SYSTEM_PROMPT, userPrompt, 3200);
+  const modelStartedAt = Date.now();
+  const rawResponse = await generateLessonSections(userPrompt);
   const { lessonPlan, lessonNote, visualPrompts, studentReading } = parseLessonResponse(rawResponse);
+  console.info(
+    `[generate] ${indicatorCode}: grounding ${modelStartedAt - groundingStartedAt}ms, model ${Date.now() - modelStartedAt}ms, total ${Date.now() - groundingStartedAt}ms`
+  );
 
   const inferredContext = getGradeContext(grade);
   const header: LessonHeader = {

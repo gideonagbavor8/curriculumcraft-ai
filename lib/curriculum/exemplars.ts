@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import {
   contentStandards,
   curriculumDocuments,
@@ -13,7 +13,7 @@ import {
   subjects,
 } from "@/db/schema";
 import { db } from "@/lib/db";
-import { DEFAULT_CURRICULUM_SLUG } from "./catalog";
+import { DEFAULT_CURRICULUM_SLUG, resolveSubjectSlug } from "./catalog";
 import { resolveGradeCode } from "./grades";
 import { cleanCurriculumText } from "./text";
 import type {
@@ -110,7 +110,7 @@ export async function getIndicatorGrounding({
       .leftJoin(curriculumReleases, eq(indicators.releaseId, curriculumReleases.id))
       .where(and(
         eq(subjects.curriculumId, framework.id),
-        or(eq(subjects.name, subject), eq(subjects.slug, subject)),
+        or(eq(subjects.name, subject), eq(subjects.slug, resolveSubjectSlug(subject))),
         eq(grades.code, canonicalGrade ?? grade),
         eq(indicators.code, indicatorCode),
         strand ? eq(strands.name, strand) : undefined,
@@ -119,6 +119,9 @@ export async function getIndicatorGrounding({
           ? eq(curriculumReleases.version, matchRevision)
           : or(isNull(indicators.releaseId), eq(curriculumReleases.status, "approved"))
       ))
+      // A seed placeholder can share its code with the official row that
+      // replaced it; the release-backed row is the one to ground on.
+      .orderBy(sql`${indicators.releaseId} is null`)
       .limit(1);
     let [row] = await loadIndicator(revision ?? null);
     if (!row && !revision) {

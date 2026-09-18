@@ -6,9 +6,12 @@ import {
   educationLevels,
   grades,
   gradeAliases,
+  indicators,
+  strands,
+  subStrands,
   subjects,
 } from "@/db/schema";
-import { DEFAULT_CURRICULUM_SLUG } from "@/lib/curriculum/catalog";
+import { DEFAULT_CURRICULUM_SLUG, withoutSupersededSubjects } from "@/lib/curriculum/catalog";
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,6 +53,21 @@ export async function GET(request: NextRequest) {
         .where(eq(subjects.curriculumId, curriculum.id))
         .orderBy(asc(subjects.name)),
     ]);
+
+    // Which levels each subject actually has indicators for - Arabic is JHS
+    // only, History is Primary only - so a selector set to one level can
+    // leave out the subjects that would come back empty.
+    const subjectLevelRows = subjectRows.length
+      ? await db
+          .selectDistinct({ subjectId: strands.subjectId, levelCode: educationLevels.code })
+          .from(strands)
+          .innerJoin(subStrands, eq(subStrands.strandId, strands.id))
+          .innerJoin(indicators, eq(indicators.subStrandId, subStrands.id))
+          .innerJoin(grades, eq(indicators.gradeId, grades.id))
+          .innerJoin(educationLevels, eq(grades.educationLevelId, educationLevels.id))
+          .where(inArray(strands.subjectId, subjectRows.map((row) => row.id)))
+      : [];
+    const levelsBySubject = Map.groupBy(subjectLevelRows, (row) => row.subjectId);
 
     const aliasRows = levelRows.length
       ? await db
@@ -98,7 +116,10 @@ export async function GET(request: NextRequest) {
           version: curriculum.version,
         },
         levels,
-        subjects: subjectRows,
+        subjects: withoutSupersededSubjects(subjectRows).map((subject) => ({
+          ...subject,
+          levels: (levelsBySubject.get(subject.id) ?? []).map((row) => row.levelCode),
+        })),
       },
     });
   } catch (error) {

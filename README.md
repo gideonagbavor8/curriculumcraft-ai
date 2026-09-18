@@ -116,15 +116,44 @@ GitHub Copilot was used throughout the development of this project in VS Code:
 
 ## NaCCA Curriculum Coverage
 
-| Subject | Grades | Strands |
-|---|---|---|
-| Mathematics | B7, B8, B9 | Number & Numeration, Algebra, Geometry & Measurement, Statistics & Probability |
-| Science | B7, B8, B9 | Life Sciences, Physical Sciences, Earth & Space |
-| English Language | B7, B8, B9 | Reading & Comprehension, Writing, Grammar & Usage, Literature |
-| Computing | B7, B8, B9 | Computing Systems, Data & Information, Programming & Algorithms, Digital Citizenship |
-| Social Studies | B7, B8, B9 | The Individual & Society, Governance & Citizenship, Environment & Sustainability |
-| RME | B7, B8, B9 | Religious Beliefs & Practices, Moral Values & Character |
-| Career Technology | B7, B8, B9 |  Exploratory Skills, Technical & Vocational Skills |
+**Primary (B1-B6)** - imported from the 2019 Standards-Based Curriculum books:
+English Language, Mathematics, Science, Computing, French, Ghanaian Language,
+History, Our World and Our People, Physical Education, Religious and Moral
+Education.
+
+**JHS (B7-B9)** - imported from the 2021 Common Core Programme (CCP) books on
+[nacca.gov.gh](https://nacca.gov.gh/common-core-programme/), one approved
+release per subject, every subject on NaCCA's CCP list:
+
+| Subject | Grades | Indicators | Exemplars |
+|---|---|---|---|
+| English Language | B7, B8, B9 | 152 | 450 |
+| Mathematics | B7, B8, B9 | 178 | 463 |
+| Science | B7, B8, B9 | 154 | 398 |
+| Social Studies | B7, B8, B9 | 54 | 299 |
+| Computing | B7, B8, B9 | 132 | 308 |
+| Career Technology | B7, B8, B9 | 135 | 714 |
+| Religious and Moral Education | B7, B8, B9 | 68 | 127 |
+| Creative Arts and Design | B7, B8, B9 | 100 | 248 |
+| Physical Education and Health | B7, B8, B9 | 54 | 182 |
+| Ghanaian Language | B7, B8, B9 | 104 | 296 |
+| French | B7, B8, B9 | 166 | 681 |
+| Arabic | B7, B8, B9 | 199 | 201 |
+
+Every JHS row carries its content standard, core competencies, source page,
+raw source text and document checksum. Rows the extractor could not settle
+(a number the book reuses, a heading the book omits) are imported anyway and
+marked `needs-review` with the reason in `source_reference`.
+
+To rebuild the JHS envelopes from the official PDFs:
+
+```bash
+# Put each CCP PDF in %TEMP%/nacca-jhs-ccp/<key>.pdf (keys in db/extract-jhs-ccp.ts)
+# and convert it: pdftotext -layout -enc UTF-8 <key>.pdf <key>.txt
+npm run curriculum:extract-jhs                      # writes jhs-<key>-2021.json per subject
+npm run curriculum:import -- $TEMP/nacca-jhs-ccp/jhs-mathematics-2021.json --dry-run
+npm run curriculum:validate -- --level JHS          # per-subject counts and cross-subject checks
+```
 
 ---
 

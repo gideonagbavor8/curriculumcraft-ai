@@ -8,6 +8,7 @@ import MarkdownRenderer, { parseInlineContent } from "@/components/lesson/Markdo
 import { useTeacherProfile, readExampleHistory, writeExampleHistory } from "@/lib/teacherProfile";
 import LocationCascadeSelect, { type LocationCascadeValue } from "@/components/location/LocationCascadeSelect";
 import type { LocalExampleCategory } from "@/lib/localContext/types";
+import GeneratedNotice from "@/components/lesson/GeneratedNotice";
 
 interface SelectedIndicator {
   code: string;
@@ -140,6 +141,8 @@ export default function ActivitySuitePage() {
   const [selectedIndicator, setSelectedIndicator] = useState<SelectedIndicator | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ActivityResponse | null>(null);
+  // Counts finished generations so each one gets a fresh "ready" card.
+  const [readyCount, setReadyCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { profile } = useTeacherProfile();
   const [locationOverride, setLocationOverride] = useState<LocationCascadeValue>({
@@ -187,6 +190,7 @@ export default function ActivitySuitePage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
       setResult(data.data);
+      setReadyCount((count) => count + 1);
       const used = data.data.resolvedLocalContext?.examples as Partial<Record<LocalExampleCategory, string>> | undefined;
       if (used) {
         const history = readExampleHistory();
@@ -248,6 +252,14 @@ export default function ActivitySuitePage() {
             </div>
           )}
         </div>
+
+        {result && readyCount > 0 && (
+          <GeneratedNotice
+            key={readyCount}
+            title="Activities ready"
+            detail={`${result.mcqs.length} questions · ${result.writingPrompts.length} writing prompts · ${result.rubric.length} rubric criteria`}
+          />
+        )}
 
         {error && <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>}
 

@@ -1,5 +1,47 @@
 export const DEFAULT_CURRICULUM_SLUG = "ghana-nacca-sbc";
 
+/**
+ * Seed-era subject slugs and the official subject that replaced each. The
+ * first JHS seed created "english-language" and "rme" with a handful of
+ * placeholder indicators; the official NaCCA releases file the same subjects
+ * under the slugs the Primary releases already used. The placeholder rows are
+ * kept (nothing imported is ever deleted), but a superseded slug is hidden
+ * from the catalog whenever its replacement exists, and any request for it is
+ * answered with the replacement so older saved schemes and links keep working.
+ */
+export const SUPERSEDED_SUBJECT_SLUGS: Readonly<Record<string, string>> = {
+  "english-language": "english",
+  rme: "religious-and-moral-education",
+};
+
+/** The slug to serve for a requested subject slug - itself, unless it has been superseded. */
+export function resolveSubjectSlug(slug: string): string {
+  return SUPERSEDED_SUBJECT_SLUGS[slug] ?? slug;
+}
+
+/** Drops superseded subjects from a list when the subject that replaced them is also in it. */
+export function withoutSupersededSubjects<T extends { slug: string }>(list: readonly T[]): T[] {
+  const present = new Set(list.map((item) => item.slug));
+  return list.filter((item) => {
+    const replacement = SUPERSEDED_SUBJECT_SLUGS[item.slug];
+    return !replacement || !present.has(replacement);
+  });
+}
+
+/**
+ * The catalog's subjects that have indicators at a level - Arabic is JHS only,
+ * History is Primary only. A subject with no level data (an older catalog
+ * response) is kept rather than hidden.
+ */
+export function subjectsTaughtAt<T extends { slug: string; levels?: string[] }>(
+  catalog: { subjects: T[] } | null | undefined,
+  levelCode: string
+): T[] {
+  return (catalog?.subjects ?? []).filter(
+    (item) => !item.levels || item.levels.length === 0 || item.levels.includes(levelCode)
+  );
+}
+
 export const EDUCATION_LEVELS = [
   {
     code: "PRIMARY",

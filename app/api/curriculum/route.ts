@@ -14,14 +14,15 @@ import {
   indicatorExemplars,
 } from "@/db/schema";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
-import { DEFAULT_CURRICULUM_SLUG } from "@/lib/curriculum/catalog";
+import { DEFAULT_CURRICULUM_SLUG, resolveSubjectSlug, withoutSupersededSubjects } from "@/lib/curriculum/catalog";
 import { resolveGradeCode } from "@/lib/curriculum/grades";
 import { cleanCurriculumText } from "@/lib/curriculum/text";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const subjectSlug = searchParams.get("subject");
+    const requestedSubjectSlug = searchParams.get("subject");
+    const subjectSlug = requestedSubjectSlug ? resolveSubjectSlug(requestedSubjectSlug) : null;
     const requestedGrade = searchParams.get("grade");
     const level = searchParams.get("level");
     const grade = await resolveGradeCode(requestedGrade, level);
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
           eq(subjects.curriculumId, curriculumFrameworks.id)
         )
         .where(eq(curriculumFrameworks.slug, curriculumSlug));
-      return NextResponse.json({ success: true, data: allSubjects });
+      return NextResponse.json({ success: true, data: withoutSupersededSubjects(allSubjects) });
     }
 
     // Find the subject
@@ -136,11 +137,27 @@ export async function GET(request: NextRequest) {
     } else if (rows.length === 0 && !requestedRevision) {
       rows = await loadRows(null);
     }
+    // The seed left placeholder indicators with no release beside what the
+    // official releases later imported. Wherever a release covers a grade, its
+    // rows are the curriculum and the placeholders stay out of sight - they
+    // are still the answer for a grade no release has reached.
+    const releasedGrades = new Set(
+      rows.flatMap((row) => (row.indicatorReleaseId !== null ? [row.indicatorGrade] : []))
+    );
+    if (releasedGrades.size > 0) {
+      rows = rows.filter(
+        (row) => row.indicatorReleaseId !== null || !releasedGrades.has(row.indicatorGrade)
+      );
+    }
 
     const usingRelease = rows.some((row) => row.indicatorReleaseId !== null);
     const revision = usingRelease
       ? rows.find((row) => row.releaseVersion)?.releaseVersion ?? requestedRevision ?? subject.curriculum_frameworks.version
       : subject.curriculum_frameworks.version;
+    // A subject spans releases - Primary from one book, JHS from another -
+    // so an unfiltered request carries rows under more than one revision,
+    // and each indicator's exemplars are filed under its own.
+    const revisions = [...new Set(rows.map((row) => row.releaseVersion ?? subject.curriculum_frameworks.version))];
     const exemplarRows = rows.length
       ? await db
           .select({
@@ -165,7 +182,7 @@ export async function GET(request: NextRequest) {
                 indicatorExemplars.indicatorId,
                 rows.map((row) => row.indicatorId)
               ),
-              eq(indicatorExemplars.revision, revision)
+              inArray(indicatorExemplars.revision, revisions.length ? revisions : [revision])
             )
           )
           .orderBy(

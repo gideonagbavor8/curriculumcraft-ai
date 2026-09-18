@@ -25,7 +25,22 @@ export const BETA_FOCUS_ON_SCHEME = true;
  * competing with it.
  */
 export const BETA_FOCUS_DESTINATION = "/scheme-of-learning";
-export const BETA_FOCUS_ALLOWED_PATHS = ["/", BETA_FOCUS_DESTINATION, "/settings", "/access"];
+/**
+ * The Lesson Builder is open alongside the scheme: it is the same lesson
+ * generation over the curriculum's own indicators, for a teacher who has no
+ * scheme document to hand, and now covers Primary and JHS from official
+ * NaCCA releases.
+ */
+export const BETA_FOCUS_ALLOWED_PATHS = [
+  "/",
+  BETA_FOCUS_DESTINATION,
+  "/lesson-builder",
+  "/settings",
+  "/access",
+  // Plain pages about the product, not tools under construction.
+  "/about",
+  "/contact",
+];
 
 // Beta feedback widget - the floating "Help Improve CurriculumCraft" button
 // on every page. Both destinations are Google Forms, set per deployment in

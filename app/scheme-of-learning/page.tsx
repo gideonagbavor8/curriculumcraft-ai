@@ -23,6 +23,7 @@ import TeachingDayPicker, { WEEKDAYS, type Weekday } from "@/components/lesson/T
 import LessonSizingFields, { isValidDuration, isValidClassSize } from "@/components/lesson/LessonSizingFields";
 import { DEFAULT_DURATION_MINUTES, DEFAULT_CLASS_SIZE } from "@/lib/lessonSizing";
 import type { GenerateResponse } from "@/types/curriculum";
+import GeneratedNotice from "@/components/lesson/GeneratedNotice";
 
 type UploadKind = "full_school" | "single_subject" | "single_week";
 type UploadStatus = "pending" | "parsed" | "needs_review" | "failed";
@@ -513,6 +514,8 @@ export default function SchemeOfLearningPage() {
   const [generating, setGenerating] = useState(false);
   const [generateProgress, setGenerateProgress] = useState<{ day: number; total: number } | null>(null);
   const [generatedLessons, setGeneratedLessons] = useState<SchemeGeneratedLesson[] | null>(null);
+  // Counts finished generations so each one gets a fresh "ready" card.
+  const [readyCount, setReadyCount] = useState(0);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
   const gradeLabel = (code: string) =>
@@ -685,6 +688,7 @@ export default function SchemeOfLearningPage() {
         results.push(json.data);
       }
       setGeneratedLessons(results);
+      setReadyCount((count) => count + 1);
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : "Failed to generate lessons");
     } finally {
@@ -1278,6 +1282,14 @@ export default function SchemeOfLearningPage() {
                             </div>
 
                             {generateError && <p className="text-sm text-red-600 dark:text-red-400">{generateError}</p>}
+
+                            {generatedLessons && generatedLessons.length > 0 && readyCount > 0 && (
+                              <GeneratedNotice
+                                key={readyCount}
+                                title={`${generatedLessons.length} lesson${generatedLessons.length === 1 ? "" : "s"} ready`}
+                                detail={generatedLessons.map((lesson) => lesson.header?.day ?? lesson.indicatorCode).filter(Boolean).join(" · ")}
+                              />
+                            )}
 
                             {generatedLessons && generatedLessons.length > 0 && (
                               <div className="space-y-4">

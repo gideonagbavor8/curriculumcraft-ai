@@ -87,6 +87,103 @@
     }
   }
 
+  /* Pop-up cards (the beta notice, the feedback dialog, the worksheet): the
+     backdrop fades in and the card rises into place with a touch of scale,
+     the same on a phone (where it sits at the bottom) as on a desktop. */
+  @keyframes modal-backdrop-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes modal-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-modal-backdrop {
+    animation: modal-backdrop-in 0.25s ease-out both;
+  }
+
+  .animate-modal-card {
+    animation: modal-card-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-modal-backdrop,
+    .animate-modal-card {
+      animation-duration: 0.01s;
+      animation-delay: 0s;
+    }
+  }
+
+  /* The "materials ready" card: drops in from just above its resting place,
+     the check pops a beat later, and after its hold it lifts away. */
+  @keyframes generated-notice-in {
+    from {
+      opacity: 0;
+      transform: translateY(-14px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes generated-notice-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.97);
+    }
+  }
+
+  @keyframes generated-notice-check {
+    0% {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+    60% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .animate-generated-notice-in {
+    animation: generated-notice-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-generated-notice-out {
+    animation: generated-notice-out 0.3s ease-in both;
+  }
+
+  .animate-generated-notice-check {
+    animation: generated-notice-check 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-generated-notice-in,
+    .animate-generated-notice-out,
+    .animate-generated-notice-check {
+      animation-duration: 0.01s;
+    }
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -152,6 +249,27 @@
   .animate-pulse {
     animation: pulse-skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+}
+
+/* The student worksheet is a white A4 sheet whatever the app's theme - it is
+   printed, and a printout is not dark. The markdown it renders carries the
+   app's dark-mode colours, which on a white sheet turn bold words white and
+   body text pale grey. Inside the sheet those dark-mode colours are pinned
+   back to their light-mode values. */
+.dark .student-worksheet-print-area :is(.dark\:text-white) {
+  color: var(--color-gray-900);
+}
+.dark .student-worksheet-print-area :is(.dark\:text-gray-300) {
+  color: var(--color-gray-700);
+}
+.dark .student-worksheet-print-area :is(.dark\:text-gray-400) {
+  color: var(--color-gray-500);
+}
+.dark .student-worksheet-print-area :is(.dark\:text-amber-400) {
+  color: var(--color-amber-700);
+}
+.dark .student-worksheet-print-area :is(.dark\:text-green-400) {
+  color: var(--color-green-700);
 }
 
 @media print {

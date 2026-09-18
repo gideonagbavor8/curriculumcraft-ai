@@ -23,12 +23,11 @@ const FEATURES = [
     icon: BookOpen,
     title: "Lesson Builder",
     description:
-      "Pick any single NaCCA indicator and generate one lesson from it, with teacher notes and student reading material.",
+      "Pick any single NaCCA indicator, Basic 1 to JHS 3, and generate one lesson from it, with teacher notes and student reading material.",
     href: "/lesson-builder",
     color: "text-blue-600 dark:text-blue-300",
     bg: "bg-blue-50 dark:bg-blue-900/40",
     border: "border-blue-100 dark:border-blue-700",
-    comingSoon: true,
   },
   {
     icon: Zap,
@@ -132,7 +131,7 @@ export default async function HomePage() {
             Everything you need to plan a term
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-300">
-            Start with the Scheme of Learning - the rest is being finished during the beta.
+            Start with the Scheme of Learning or the Lesson Builder - the rest is being finished during the beta.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
