@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import { authorize } from "@/lib/auth";
+import { isUuid } from "@/lib/authSecurity";
 import { db } from "@/lib/db";
 import { schemeWeeks, schemeSubjects, schemeUploads, schemeWeekIndicators } from "@/db/schema";
 import { generateLessonForIndicator } from "@/lib/generateLesson";
@@ -30,7 +32,10 @@ interface GenerateDayRequestBody {
 // uses). Never modifies the scheme - purely reads it.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ weekId: string }> }) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { weekId } = await params;
+    if (!isUuid(weekId)) return NextResponse.json({ success: false, error: "Invalid week ID" }, { status: 400 });
     const body: GenerateDayRequestBody = await request.json();
     const { dayIndex, totalDays } = body;
 
@@ -38,7 +43,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: "dayIndex and totalDays are required" }, { status: 400 });
     }
 
-    const [week] = await db.select().from(schemeWeeks).where(eq(schemeWeeks.id, weekId)).limit(1);
+    const [owned] = await db.select({ week: schemeWeeks, subject: schemeSubjects, upload: schemeUploads })
+      .from(schemeWeeks)
+      .innerJoin(schemeSubjects, eq(schemeSubjects.id, schemeWeeks.schemeSubjectId))
+      .innerJoin(schemeUploads, eq(schemeUploads.id, schemeSubjects.schemeUploadId))
+      .where(and(eq(schemeWeeks.id, weekId), eq(schemeUploads.userId, user.id))).limit(1);
+    const week = owned?.week;
     if (!week) {
       return NextResponse.json({ success: false, error: "Scheme week not found" }, { status: 404 });
     }
@@ -49,11 +59,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    const [subject] = await db.select().from(schemeSubjects).where(eq(schemeSubjects.id, week.schemeSubjectId)).limit(1);
+    const subject = owned.subject;
     if (!subject) {
       return NextResponse.json({ success: false, error: "Scheme subject not found" }, { status: 404 });
     }
-    const [upload] = await db.select().from(schemeUploads).where(eq(schemeUploads.id, subject.schemeUploadId)).limit(1);
+    const upload = owned.upload;
     if (!upload) {
       return NextResponse.json({ success: false, error: "Scheme upload not found" }, { status: 404 });
     }

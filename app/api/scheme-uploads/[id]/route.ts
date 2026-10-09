@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import { authorize } from "@/lib/auth";
+import { isUuid } from "@/lib/authSecurity";
 import { db } from "@/lib/db";
 import { schemeUploads, schemeSubjects, schemeWeeks, schemeWeekIndicators } from "@/db/schema";
 
@@ -8,7 +10,10 @@ import { schemeUploads, schemeSubjects, schemeWeeks, schemeWeekIndicators } from
 // the raw file bytes.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { id } = await params;
+    if (!isUuid(id)) return NextResponse.json({ success: false, error: "Invalid scheme ID" }, { status: 400 });
 
     const [upload] = await db
       .select({
@@ -24,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         uploadedAt: schemeUploads.uploadedAt,
       })
       .from(schemeUploads)
-      .where(eq(schemeUploads.id, id))
+      .where(and(eq(schemeUploads.id, id), eq(schemeUploads.userId, user.id)))
       .limit(1);
 
     if (!upload) {
@@ -102,8 +107,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 // Library down to the schemes they actually teach from.
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { id } = await params;
-    const [deleted] = await db.delete(schemeUploads).where(eq(schemeUploads.id, id)).returning({ id: schemeUploads.id });
+    if (!isUuid(id)) return NextResponse.json({ success: false, error: "Invalid scheme ID" }, { status: 400 });
+    const [deleted] = await db.delete(schemeUploads).where(and(eq(schemeUploads.id, id), eq(schemeUploads.userId, user.id))).returning({ id: schemeUploads.id });
     if (!deleted) {
       return NextResponse.json({ success: false, error: "Scheme upload not found" }, { status: 404 });
     }

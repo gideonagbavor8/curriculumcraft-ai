@@ -7,9 +7,12 @@ import {
 } from "@/db/schema";
 import { DEFAULT_CURRICULUM_SLUG } from "@/lib/curriculum/catalog";
 import { db } from "@/lib/db";
+import { authorize } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { searchParams } = request.nextUrl;
     const curriculumSlug =
       searchParams.get("curriculum") ?? DEFAULT_CURRICULUM_SLUG;

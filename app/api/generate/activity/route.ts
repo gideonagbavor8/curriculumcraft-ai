@@ -7,9 +7,12 @@ import {
 import type { ActivityResponse } from "@/types/curriculum";
 import { getIndicatorGrounding } from "@/lib/curriculum/exemplars";
 import { getLocalContextProvider, resolveLocalContext } from "@/lib/localContext";
+import { authorize } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const body = await request.json();
 
     const {

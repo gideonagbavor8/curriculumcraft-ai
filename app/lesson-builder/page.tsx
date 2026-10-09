@@ -234,13 +234,14 @@ export default function LessonBuilderPage() {
         }),
       });
       const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to save lesson.");
       if (data.success) {
         setSaved(true);
         toast.success("Lesson saved to your library!");
         window.dispatchEvent(new Event("lesson-saved"));
       }
-    } catch {
-      toast.error("Failed to save lesson.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save lesson.");
     } finally {
       setSaving(false);
     }

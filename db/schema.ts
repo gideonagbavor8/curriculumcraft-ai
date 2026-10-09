@@ -413,8 +413,39 @@ export const curriculumImportManifests = pgTable(
   ]
 );
 
+export const teacherAccounts = pgTable("teacher_accounts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const teacherSessions = pgTable("teacher_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => teacherAccounts.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+}, (table) => [index("teacher_sessions_user_idx").on(table.userId)]);
+
+export const authRateLimits = pgTable("auth_rate_limits", {
+  key: text("key").primaryKey(),
+  attempts: integer("attempts").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const savedResources = pgTable("saved_resources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => teacherAccounts.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  resourceType: text("resource_type").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("saved_resources_user_idx").on(table.userId)]);
+
 export const savedLessons = pgTable("saved_lessons", {
   id: uuid("id").defaultRandom().primaryKey(),
+  // Null only for pre-account records; never assigned to a new teacher.
+  userId: uuid("user_id").references(() => teacherAccounts.id, { onDelete: "cascade" }),
   indicatorCode: text("indicator_code").notNull(),
   subject: text("subject").notNull(),
   curriculumSlug: text("curriculum_slug").default("ghana-nacca-sbc").notNull(),
@@ -428,7 +459,7 @@ export const savedLessons = pgTable("saved_lessons", {
   studentReading: text("student_reading").notNull(),
   lessonHeader: jsonb("lesson_header"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [index("saved_lessons_user_idx").on(table.userId)]);
 
 // --- Location database (countries -> regions -> districts -> towns -> schools) ---
 // Deliberately generic (country_id everywhere) so a second country can be added
@@ -530,6 +561,7 @@ export const locationSchools = pgTable(
 // single-week upload just produces exactly one schemeSubjects row.
 export const schemeUploads = pgTable("scheme_uploads", {
   id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => teacherAccounts.id, { onDelete: "cascade" }),
   fileName: text("file_name").notNull(),
   mimeType: text("mime_type").notNull(),
   // Base64-encoded original file bytes - no external blob storage configured
@@ -547,7 +579,7 @@ export const schemeUploads = pgTable("scheme_uploads", {
   parseWarnings: jsonb("parse_warnings").$type<string[]>().default([]).notNull(),
   parseError: text("parse_error"),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
-});
+}, (table) => [index("scheme_uploads_user_idx").on(table.userId)]);
 
 export const schemeSubjects = pgTable(
   "scheme_subjects",

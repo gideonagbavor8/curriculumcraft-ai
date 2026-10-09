@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveSubjectSlug, withoutSupersededSubjects } from "../lib/curriculum/catalog";
-import { BETA_FOCUS_ALLOWED_PATHS } from "../lib/featureFlags";
 
 test("a seed-era subject slug resolves to the official subject that replaced it", () => {
   assert.equal(resolveSubjectSlug("english-language"), "english");
@@ -22,9 +21,4 @@ test("the catalog hides a superseded subject only when its replacement is listed
     // hiding it would leave the subject with no entry at all.
     ["english", "rme", "mathematics"]
   );
-});
-
-test("the beta opens the Lesson Builder alongside the Scheme of Learning", () => {
-  assert.ok(BETA_FOCUS_ALLOWED_PATHS.includes("/scheme-of-learning"));
-  assert.ok(BETA_FOCUS_ALLOWED_PATHS.includes("/lesson-builder"));
 });

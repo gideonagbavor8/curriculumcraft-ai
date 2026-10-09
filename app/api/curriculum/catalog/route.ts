@@ -12,9 +12,12 @@ import {
   subjects,
 } from "@/db/schema";
 import { DEFAULT_CURRICULUM_SLUG, withoutSupersededSubjects } from "@/lib/curriculum/catalog";
+import { authorize } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const curriculumSlug =
       request.nextUrl.searchParams.get("curriculum") ?? DEFAULT_CURRICULUM_SLUG;
     const [curriculum] = await db

@@ -2,47 +2,49 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { LocationProfile } from "./localContext/types";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const STORAGE_KEY = "curriculumcraft:teacher-profile";
 
-function readProfile(): LocationProfile {
+function readProfile(key: string): LocationProfile {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as LocationProfile) : {};
   } catch {
     return {};
   }
 }
 
-function writeProfile(profile: LocationProfile) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+function writeProfile(key: string, profile: LocationProfile) {
+  window.localStorage.setItem(key, JSON.stringify(profile));
   window.dispatchEvent(new Event("teacher-profile-updated"));
 }
 
 /**
- * There is no user-account system in this app - the teacher's location
- * profile is a browser-local setting (same pattern as the theme toggle),
- * not tied to a login. It is designed to be swapped for a server-backed
- * per-user profile later without changing the LocationProfile shape.
+ * Classroom location remains a browser-local preference, namespaced by
+ * account so teachers sharing a device do not inherit each other's school.
+ * Account identity and saved resources are stored separately on the server.
  */
 export function useTeacherProfile() {
-  const [profile, setProfileState] = useState<LocationProfile>(() => readProfile());
+  const user = useAuth();
+  const key = `${STORAGE_KEY}:${user?.id ?? "guest"}`;
+  const [profile, setProfileState] = useState<LocationProfile>(() => readProfile(key));
 
   useEffect(() => {
-    const onUpdate = () => setProfileState(readProfile());
+    const onUpdate = () => setProfileState(readProfile(key));
     window.addEventListener("teacher-profile-updated", onUpdate);
     window.addEventListener("storage", onUpdate);
     return () => {
       window.removeEventListener("teacher-profile-updated", onUpdate);
       window.removeEventListener("storage", onUpdate);
     };
-  }, []);
+  }, [key]);
 
   const setProfile = useCallback((next: LocationProfile) => {
-    writeProfile(next);
+    writeProfile(key, next);
     setProfileState(next);
-  }, []);
+  }, [key]);
 
   return { profile, setProfile, loaded: true };
 }

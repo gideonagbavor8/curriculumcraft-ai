@@ -3,6 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BookOpen, Trash2, Loader2, Library, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+
+interface SavedResource {
+  id: string;
+  title: string;
+  resourceType: string;
+  content: string;
+  createdAt: string;
+}
 
 interface SavedLesson {
   id: string;
@@ -19,6 +28,8 @@ interface SavedLesson {
 
 export default function SavedPage() {
   const [lessons, setLessons] = useState<SavedLesson[]>([]);
+  const [resources, setResources] = useState<SavedResource[]>([]);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -26,11 +37,14 @@ export default function SavedPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch("/api/lessons");
-        const data = await res.json();
-        if (!cancelled && data.success) setLessons(data.data);
+        const responses = await Promise.all([fetch("/api/lessons"), fetch("/api/resources")]);
+        const [lessonData, resourceData] = await Promise.all(responses.map((response) => response.json()));
+        if (!responses[0].ok || !lessonData.success) throw new Error(lessonData.error || "Unable to load lessons.");
+        if (!responses[1].ok || !resourceData.success) throw new Error(resourceData.error || "Unable to load resources.");
+        if (!cancelled) { setLessons(lessonData.data); setResources(resourceData.data); }
       } catch (err) {
         console.error("Failed to fetch lessons:", err);
+        if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load your library.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -40,19 +54,36 @@ export default function SavedPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this saved lesson? This cannot be undone.")) return;
     setDeleting(id);
     try {
       const res = await fetch(`/api/lessons?id=${id}`, { method: "DELETE" });
       const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Unable to delete lesson.");
       if (data.success) {
         setLessons((prev) => prev.filter((l) => l.id !== id));
         window.dispatchEvent(new Event("lesson-saved"));
       }
     } catch (err) {
       console.error("Failed to delete:", err);
+      toast.error(err instanceof Error ? err.message : "Unable to delete lesson.");
     } finally {
       setDeleting(null);
     }
+  };
+
+  const deleteResource = async (id: string) => {
+    if (!window.confirm("Delete this saved resource? This cannot be undone.")) return;
+    setDeleting(id);
+    try {
+      const response = await fetch(`/api/resources?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to delete resource.");
+      setResources((previous) => previous.filter((resource) => resource.id !== id));
+      window.dispatchEvent(new Event("lesson-saved"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to delete resource.");
+    } finally { setDeleting(null); }
   };
 
   return (
@@ -64,9 +95,9 @@ export default function SavedPage() {
               NaCCA SBC
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-white">Saved Lessons</h1>
+          <h1 className="text-2xl font-bold text-white">Saved Resources</h1>
           <p className="text-green-100 text-sm mt-1">
-            Your library of generated lesson materials
+            Your private library of lessons, reading materials and assessments
           </p>
         </div>
       </div>
@@ -77,13 +108,13 @@ export default function SavedPage() {
             <Loader2 size={18} className="animate-spin" />
             <span className="text-sm">Loading saved lessons...</span>
           </div>
-        ) : lessons.length === 0 ? (
+        ) : error ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">{error}<button onClick={() => window.location.reload()} className="ml-3 underline">Try again</button></div> : lessons.length === 0 && resources.length === 0 ? (
           <div className="text-center py-20">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 dark:bg-green-900/40 mx-auto mb-4">
               <Library size={28} className="text-green-700 dark:text-green-400" />
             </div>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-              No saved lessons yet
+              No saved resources yet
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-300 mb-6">
               Generate a lesson and click &quot;Save to library&quot; to see it here.
@@ -100,8 +131,15 @@ export default function SavedPage() {
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-gray-400 dark:text-gray-300 mb-4">
-              {lessons.length} saved lesson{lessons.length !== 1 ? "s" : ""}
+              {lessons.length + resources.length} saved resource{lessons.length + resources.length !== 1 ? "s" : ""}
             </p>
+            {resources.map((resource) => <div key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+              <div><h2 className="font-semibold">{resource.title}</h2><p className="mt-1 text-xs text-gray-500">{resource.resourceType.replace(/_/g, " ")} - {new Date(resource.createdAt).toLocaleDateString("en-GB")}</p></div>
+              <div className="flex gap-2">
+                <Link href={`/saved/resources/${resource.id}`} className="rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-200">View</Link>
+                <button disabled={deleting === resource.id} onClick={() => deleteResource(resource.id)} className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600 disabled:opacity-50 dark:bg-red-900/30 dark:text-red-300">{deleting === resource.id ? "Deleting..." : "Delete"}</button>
+              </div>
+            </div>)}
             {lessons.map((lesson) => (
               <div
                 key={lesson.id}

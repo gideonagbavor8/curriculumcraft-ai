@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, asc, eq, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { authorize } from "@/lib/auth";
 import {
   countries,
   locationDistricts,
@@ -24,6 +25,8 @@ const MAX_LIMIT = 50;
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { searchParams } = request.nextUrl;
     const level = searchParams.get("level");
     const q = searchParams.get("q")?.trim() ?? "";

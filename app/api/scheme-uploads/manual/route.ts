@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { importManualSchemeWeek, type ManualSchemeWeekInput } from "@/lib/schemeImport/importScheme";
+import { authorize } from "@/lib/auth";
 
 // POST - records one hand-typed week (the practical path for a photo/image
 // upload, since OCR isn't implemented, or any teacher who just wants to type
@@ -7,6 +8,8 @@ import { importManualSchemeWeek, type ManualSchemeWeekInput } from "@/lib/scheme
 // file-upload would produce.
 export async function POST(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const body = (await request.json()) as Partial<ManualSchemeWeekInput>;
 
     const { gradeCode, subjectSlug, subjectLabel, weekNumber, indicatorsText } = body;
@@ -18,6 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const summary = await importManualSchemeWeek({
+      userId: user.id,
       gradeCode,
       termLabel: body.termLabel,
       subjectSlug,

@@ -24,6 +24,7 @@ import LessonSizingFields, { isValidDuration, isValidClassSize } from "@/compone
 import { DEFAULT_DURATION_MINUTES, DEFAULT_CLASS_SIZE } from "@/lib/lessonSizing";
 import type { GenerateResponse } from "@/types/curriculum";
 import GeneratedNotice from "@/components/lesson/GeneratedNotice";
+import SaveResourceButton from "@/components/lesson/SaveResourceButton";
 
 type UploadKind = "full_school" | "single_subject" | "single_week";
 type UploadStatus = "pending" | "parsed" | "needs_review" | "failed";
@@ -1305,14 +1306,20 @@ export default function SchemeOfLearningPage() {
                                 />
 
                                 {generatedLessons.map((lesson, i) => (
+                                  <div key={`${lesson.header.indicatorCode}-${i}`} className="space-y-3">
+                                  <SaveResourceButton
+                                    title={`${lesson.header.subject} - ${teachingDayNames[i] ?? `Day ${i + 1}`} - Week ${selectedWeek.weekNumber}`}
+                                    resourceType="lesson_bundle"
+                                    content={`# Lesson Plan\n\n${lesson.lessonPlan}\n\n# Lesson Notes\n\n${lesson.lessonNote}\n\n# Student Reading\n\n${lesson.studentReading}`}
+                                  />
                                   <LessonPlanTable
-                                    key={`${lesson.header.indicatorCode}-${i}`}
                                     header={lesson.header}
                                     phases={lesson.phases}
                                     lessonPlan={lesson.lessonPlan}
                                     indicators={lesson.schemeContext?.indicators}
                                     title={`${teachingDayNames[i] ?? `Day ${i + 1}`} — Week ${selectedWeek.weekNumber}`}
                                   />
+                                  </div>
                                 ))}
                               </div>
                             )}

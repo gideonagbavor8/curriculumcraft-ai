@@ -60,8 +60,9 @@ export default function SavedLessonViewPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch("/api/lessons");
+        const res = await fetch(`/api/lessons?id=${encodeURIComponent(id)}`);
         const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Failed to load lesson.");
         if (!cancelled && data.success) {
           const found = data.data.find((l: SavedLesson) => l.id === id);
           if (found) {
@@ -70,8 +71,8 @@ export default function SavedLessonViewPage() {
             setError("Lesson not found.");
           }
         }
-      } catch {
-        setError("Failed to load lesson.");
+      } catch (error) {
+        if (!cancelled) setError(error instanceof Error ? error.message : "Failed to load lesson.");
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../lib/db";
 import { schemeUploads, schemeSubjects } from "../db/schema";
 
@@ -8,7 +8,7 @@ async function main() {
   for (const u of uploads) {
     console.log("----");
     console.log(JSON.stringify({ ...u, fileContentBase64: `<${u.fileContentBase64.length} chars>` }, null, 2));
-    const subs = await db.select().from(schemeSubjects).where(require("drizzle-orm").eq(schemeSubjects.schemeUploadId, u.id));
+    const subs = await db.select().from(schemeSubjects).where(eq(schemeSubjects.schemeUploadId, u.id));
     console.log("subjects:", JSON.stringify(subs, null, 2));
   }
   process.exit(0);

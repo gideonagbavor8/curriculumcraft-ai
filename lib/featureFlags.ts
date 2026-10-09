@@ -6,48 +6,10 @@
 // teacher-facing tab/section is hidden while this is false.
 export const SHOW_VISUAL_PROMPTS = false;
 
-// During the private beta the app steers everyone to the Scheme of Learning,
-// which is the one path that is finished end to end. The other pages stay in
-// the navigation and stay reachable - a teacher who lands on one gets a short
-// note explaining where to go instead, rather than a dead link or a silent
-// redirect. Set this to false to open the whole app up again.
-export const BETA_FOCUS_ON_SCHEME = true;
-
-/**
- * Where the beta wants everyone to end up, and the routes that don't get the
- * nudge. Remove a path from this list to put it behind the notice too.
- *
- * "/settings" is here on purpose rather than as an oversight: it is where a
- * teacher records their region, district and school, and the Scheme of
- * Learning reads that to set its lessons in the teacher's own community.
- * Blocking it would quietly downgrade every generated lesson to generic
- * examples. "/" is the front door and sells the scheme feature rather than
- * competing with it.
- */
-export const BETA_FOCUS_DESTINATION = "/scheme-of-learning";
-/**
- * The Lesson Builder is open alongside the scheme: it is the same lesson
- * generation over the curriculum's own indicators, for a teacher who has no
- * scheme document to hand, and now covers Primary and JHS from official
- * NaCCA releases.
- */
-export const BETA_FOCUS_ALLOWED_PATHS = [
-  "/",
-  BETA_FOCUS_DESTINATION,
-  "/lesson-builder",
-  "/settings",
-  "/access",
-  // Plain pages about the product, not tools under construction.
-  "/about",
-  "/contact",
-];
-
-// Beta feedback widget - the floating "Help Improve CurriculumCraft" button
-// on every page. Both destinations are Google Forms, set per deployment in
-// NEXT_PUBLIC_FEEDBACK_FORM_URL and NEXT_PUBLIC_BUG_REPORT_FORM_URL. With no
-// feedback form configured the widget stays hidden rather than offering a
-// button that leads nowhere; the bug-report link falls back to the feedback
-// form when it has no address of its own.
+// Feedback widget - the compact floating "Feedback" button
+// on public and teacher pages. Uses the existing Google Form with pre-filled
+// responses. With no form configured, the widget stays hidden.
 export const SHOW_BETA_FEEDBACK_WIDGET = true;
 export const FEEDBACK_FORM_URL = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL?.trim() ?? "";
+// Legacy destination retained for deployment compatibility.
 export const BUG_REPORT_FORM_URL = process.env.NEXT_PUBLIC_BUG_REPORT_FORM_URL?.trim() || FEEDBACK_FORM_URL;

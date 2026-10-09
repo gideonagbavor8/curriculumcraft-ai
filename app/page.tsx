@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BookOpen, LayoutDashboard, Zap, ArrowRight, CloudUpload } from "lucide-react";
 import { getCurriculumStats, formatStat } from "@/lib/curriculum/stats";
+import { currentUser } from "@/lib/auth";
 
 // The counts come from the database, so they stay true as the import grows.
 // Re-read hourly rather than per request: the curriculum changes on the scale
@@ -38,7 +39,6 @@ const FEATURES = [
     color: "text-amber-600 dark:text-amber-300",
     bg: "bg-amber-50 dark:bg-amber-900/40",
     border: "border-amber-100 dark:border-amber-700",
-    comingSoon: true,
   },
   {
     icon: LayoutDashboard,
@@ -49,12 +49,11 @@ const FEATURES = [
     color: "text-violet-600 dark:text-violet-300",
     bg: "bg-violet-50 dark:bg-violet-900/40",
     border: "border-violet-100 dark:border-violet-700",
-    comingSoon: true,
   },
 ];
 
 export default async function HomePage() {
-  const stats = await getCurriculumStats();
+  const [stats, user] = await Promise.all([getCurriculumStats(), currentUser()]);
   const statCards = [
     { value: formatStat(stats.subjects), label: "Subjects" },
     { value: formatStat(stats.gradeLevels), label: "Class levels" },
@@ -131,7 +130,7 @@ export default async function HomePage() {
             Everything you need to plan a term
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-300">
-            Start with the Scheme of Learning or the Lesson Builder - the rest is being finished during the beta.
+            Create your teacher account to access every tool and build your private resource library.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -140,7 +139,7 @@ export default async function HomePage() {
             return (
               <Link
                 key={feature.title}
-                href={feature.href}
+                href={user ? feature.href : `/sign-up?next=${encodeURIComponent(feature.href)}`}
                 className={`group rounded-xl border p-6 transition-all hover:shadow-md ${
                   feature.featured
                     ? "border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-900/20 hover:border-green-400"
@@ -152,17 +151,12 @@ export default async function HomePage() {
                 </div>
                 <div className="mb-2 flex items-center gap-2">
                   <h3 className="font-semibold text-gray-900 dark:text-white">{feature.title}</h3>
-                  {feature.comingSoon && (
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                      Later in beta
-                    </span>
-                  )}
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-300 leading-relaxed mb-4">
                   {feature.description}
                 </p>
                 <div className={`flex items-center gap-1 text-sm font-medium ${feature.color} group-hover:gap-2 transition-all`}>
-                  {feature.comingSoon ? "Preview" : "Get started"} <ArrowRight size={13} />
+                  {user ? "Open tool" : "Create account to get started"} <ArrowRight size={13} />
                 </div>
               </Link>
             );

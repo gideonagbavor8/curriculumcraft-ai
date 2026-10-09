@@ -81,7 +81,7 @@ export default function ContactPage() {
               ))}
             </ul>
             <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-              Found a bug or want to send feedback quickly? The <strong className="font-semibold">Help Improve CurriculumCraft</strong>{" "}
+              Found a bug or want to send feedback quickly? The <strong className="font-semibold">Feedback</strong>{" "}
               button on every page takes you straight to the feedback form.
             </p>
           </div>

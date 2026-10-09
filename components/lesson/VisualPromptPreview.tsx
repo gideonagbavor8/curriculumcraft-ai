@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Eye, 
   EyeOff, 
@@ -43,6 +43,13 @@ export default function VisualPromptPreview({
   // Chalkboard states
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [showAllSteps, setShowAllSteps] = useState(false);
+  const [previousStepContext, setPreviousStepContext] = useState({ activeTab, content });
+
+  if (previousStepContext.activeTab !== activeTab || previousStepContext.content !== content) {
+    setPreviousStepContext({ activeTab, content });
+    setCurrentStepIndex(0);
+    setShowAllSteps(false);
+  }
 
   // Parse visual prompts from LLM response
   const parseVisualPrompts = (text: string): ParsedPrompts => {
@@ -167,12 +174,6 @@ export default function VisualPromptPreview({
   };
 
   const boardSteps = getChalkboardSteps(parsedPrompts.board.description);
-
-  // Reset steps when tab or content changes
-  useEffect(() => {
-    setCurrentStepIndex(0);
-    setShowAllSteps(false);
-  }, [activeTab, content]);
 
   // Determine photo mockup subject graphic
   const renderSubjectIllustration = () => {
@@ -506,4 +507,3 @@ export default function VisualPromptPreview({
     </div>
   );
 }
-

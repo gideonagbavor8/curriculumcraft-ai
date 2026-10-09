@@ -12,6 +12,7 @@ import { groupSectionsBySubject, cleanSubjectLabel, weeksWithStrandHint, type Su
 export type UploadKind = "full_school" | "single_subject" | "single_week";
 
 export interface ImportSchemeInput {
+  userId: string;
   fileName: string;
   mimeType: string;
   buffer: Buffer;
@@ -98,6 +99,7 @@ export async function importSchemeOfLearning(input: ImportSchemeInput): Promise<
   const [uploadRow] = await db
     .insert(schemeUploads)
     .values({
+      userId: input.userId,
       fileName: input.fileName,
       mimeType: input.mimeType,
       fileContentBase64: input.buffer.toString("base64"),
@@ -265,6 +267,7 @@ async function importWeeksForSubject(
 }
 
 export interface ManualSchemeWeekInput {
+  userId: string;
   gradeCode: string;
   termLabel?: string;
   subjectSlug: string;
@@ -308,6 +311,7 @@ export async function importManualSchemeWeek(input: ManualSchemeWeekInput): Prom
   const [uploadRow] = await db
     .insert(schemeUploads)
     .values({
+      userId: input.userId,
       fileName: `Week ${input.weekNumber} (manual entry)`,
       mimeType: "text/manual-entry",
       fileContentBase64: Buffer.from(JSON.stringify(input)).toString("base64"),
@@ -352,4 +356,3 @@ export async function importManualSchemeWeek(input: ManualSchemeWeekInput): Prom
     warnings,
   };
 }
-

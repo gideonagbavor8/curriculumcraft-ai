@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { desc, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
+import { authorize } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { schemeUploads, schemeSubjects } from "@/db/schema";
 import { importSchemeOfLearning, type UploadKind } from "@/lib/schemeImport/importScheme";
@@ -10,6 +11,8 @@ const UPLOAD_KINDS: UploadKind[] = ["full_school", "single_subject", "single_wee
 // POST - upload + parse a Scheme of Learning (.docx, .pdf, or a photo)
 export async function POST(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const formData = await request.formData();
     const file = formData.get("file");
     const subjectSlug = formData.get("subjectSlug");
@@ -38,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const summary = await importSchemeOfLearning({
+      userId: user.id,
       fileName: file.name,
       mimeType: file.type || "application/octet-stream",
       buffer,
@@ -58,8 +62,10 @@ export async function POST(request: NextRequest) {
 }
 
 // GET - list uploaded schemes with their subjects (metadata only, not the file bytes) - this is the Scheme Library's main list.
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const rows = await db
       .select({
         id: schemeUploads.id,
@@ -73,6 +79,7 @@ export async function GET() {
         uploadedAt: schemeUploads.uploadedAt,
       })
       .from(schemeUploads)
+      .where(eq(schemeUploads.userId, user.id))
       .orderBy(desc(schemeUploads.uploadedAt));
 
     const uploadIds = rows.map((r) => r.id);
@@ -102,4 +109,3 @@ export async function GET() {
     return NextResponse.json({ success: false, error: "Failed to fetch scheme uploads" }, { status: 500 });
   }
 }
-

@@ -1,56 +1,35 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { BETA_ACCESS_COOKIE, isBetaGateEnabled, isValidAccessToken } from "@/lib/betaAccess";
+import { NextResponse, type NextRequest } from "next/server";
+import { userForToken } from "@/lib/auth";
+import { isSameOrigin, SESSION_COOKIE } from "@/lib/authSecurity";
 
-/**
- * Holds the private beta shut. Runs before every request that the matcher
- * below lets through, and turns away anyone without a valid pass - a browser
- * gets sent to the access page, an API call gets a 401 rather than an HTML
- * redirect it cannot read.
- *
- * Gating the API routes matters as much as the pages: /api/generate spends
- * real money per call, so leaving it open while only the pages were gated
- * would protect nothing worth protecting.
- *
- * In Next.js 16 this file is `proxy.ts` - the former `middleware.ts`. It runs
- * on the Node.js runtime, which is what lets it share lib/betaAccess.ts and
- * its node:crypto signing with the route handler.
- */
+const TEACHER_PAGES = ["/dashboard", "/lesson-builder", "/activity-suite", "/scheme-of-learning", "/saved", "/settings", "/account"];
 
-/** Reachable without a pass: the gate itself, and the endpoint that grants one. */
-const PUBLIC_PATHS = ["/access", "/api/beta-access", "/api/health"];
-
-function isPublicPath(pathname: string): boolean {
-  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-}
-
-export function proxy(request: NextRequest) {
-  if (!isBetaGateEnabled()) return NextResponse.next();
-
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  if (isPublicPath(pathname)) return NextResponse.next();
-
-  if (isValidAccessToken(request.cookies.get(BETA_ACCESS_COOKIE)?.value)) {
-    return NextResponse.next();
+  const api = pathname.startsWith("/api/");
+  const protectedApi = api && !pathname.startsWith("/api/auth/") && pathname !== "/api/health";
+  const protectedPage = TEACHER_PAGES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+  if (!protectedApi && !protectedPage) return NextResponse.next();
+  if (api && !["GET", "HEAD", "OPTIONS"].includes(request.method) && !isSameOrigin(request)) {
+    return NextResponse.json({ success: false, error: "Request origin is not allowed." }, { status: 403 });
   }
-
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.json(
-      { success: false, error: "This is a private beta - an access code is required." },
-      { status: 401 }
-    );
+  try {
+    const user = await userForToken(request.cookies.get(SESSION_COOKIE)?.value);
+    if (!user) {
+      if (api) return NextResponse.json({ success: false, error: "Sign in to use CurriculumCraft AI." }, { status: 401 });
+      const url = new URL("/sign-in", request.url);
+      url.searchParams.set("next", `${pathname}${search}`);
+      return NextResponse.redirect(url);
+    }
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  } catch (error) {
+    console.error("Authentication service unavailable:", error);
+    return NextResponse.json({ success: false, error: "Account service is temporarily unavailable. Please try again." }, { status: 503 });
   }
-
-  // Carry where they were headed, so entering the code lands them there
-  // rather than dumping everyone on the home page.
-  const accessUrl = new URL("/access", request.url);
-  accessUrl.searchParams.set("next", `${pathname}${search}`);
-  return NextResponse.redirect(accessUrl);
 }
 
 export const config = {
-  // Everything except Next's own build output, Vercel's analytics script and
-  // static assets. Public files are matched by extension so images, fonts and
-  // the favicon still load on the access page itself.
   matcher: ["/((?!_next/static|_next/image|_vercel|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)"],
 };

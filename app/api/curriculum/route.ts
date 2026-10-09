@@ -17,9 +17,12 @@ import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import { DEFAULT_CURRICULUM_SLUG, resolveSubjectSlug, withoutSupersededSubjects } from "@/lib/curriculum/catalog";
 import { resolveGradeCode } from "@/lib/curriculum/grades";
 import { cleanCurriculumText } from "@/lib/curriculum/text";
+import { authorize } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { searchParams } = new URL(request.url);
     const requestedSubjectSlug = searchParams.get("subject");
     const subjectSlug = requestedSubjectSlug ? resolveSubjectSlug(requestedSubjectSlug) : null;

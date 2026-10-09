@@ -3,10 +3,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import BetaFocusNotice from "@/components/layout/BetaFocusNotice";
 import BetaFeedbackWidget from "@/components/layout/BetaFeedbackWidget";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { currentUser } from "@/lib/auth";
+import AnnouncementBanner from "@/components/layout/AnnouncementBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,19 +19,21 @@ export const metadata: Metadata = {
     "AI-powered instructional design platform for Ghanaian JHS teachers. Transform NaCCA curriculum standards into complete lesson materials instantly.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await currentUser();
   return (
     <html lang="en">
       <body className={inter.className}>
+        <AuthProvider user={user ? { ...user, createdAt: user.createdAt.toISOString() } : null}>
         <Navbar />
         <main>{children}</main>
         <Footer />
+        <AnnouncementBanner />
         <BetaFeedbackWidget />
-        <BetaFocusNotice />
         {/* Errors and small confirmations. Finished generations get their own
             card (components/lesson/GeneratedNotice) instead of a toast. */}
         <Toaster
@@ -40,6 +44,7 @@ export default function RootLayout({
           }}
         />
         <Analytics />
+        </AuthProvider>
       </body>
     </html>
   );

@@ -9,6 +9,7 @@ import { useTeacherProfile, readExampleHistory, writeExampleHistory } from "@/li
 import LocationCascadeSelect, { type LocationCascadeValue } from "@/components/location/LocationCascadeSelect";
 import type { LocalExampleCategory } from "@/lib/localContext/types";
 import GeneratedNotice from "@/components/lesson/GeneratedNotice";
+import SaveResourceButton from "@/components/lesson/SaveResourceButton";
 
 interface SelectedIndicator {
   code: string;
@@ -265,6 +266,18 @@ export default function ActivitySuitePage() {
 
         {result && (
           <div className="space-y-5">
+            <SaveResourceButton
+              title={`${selectedIndicator?.subject ?? "Activities"} - ${selectedIndicator?.code ?? "Assessment"}`}
+              resourceType="assessment"
+              content={[
+                "# Multiple Choice Questions",
+                ...result.mcqs.map((q, index) => `## ${index + 1}. ${q.question}\n${q.options.map((o) => `- ${o.label}: ${o.text}${o.isCorrect ? " (Correct answer)" : ""}`).join("\n")}\n\n${q.explanation}`),
+                "# Writing Prompts",
+                ...result.writingPrompts.map((p) => `## ${p.prompt}\n${p.sampleAnswer}`),
+                "# Assessment Rubric",
+                ...result.rubric.map((r) => `## ${r.criterion}\n- Excellent: ${r.excellent}\n- Satisfactory: ${r.satisfactory}\n- Needs work: ${r.needsWork}`),
+              ].join("\n\n")}
+            />
             <div className="flex items-center gap-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3">
               <CheckCircle size={16} className="text-green-600 dark:text-green-400 flex-shrink-0" />
               <div>

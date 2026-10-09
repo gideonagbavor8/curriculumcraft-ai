@@ -1,33 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { savedLessons } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
+import { authorize } from "@/lib/auth";
+import { isUuid } from "@/lib/authSecurity";
 
 // GET - fetch all saved lessons (with optional filters)
 export async function GET(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { searchParams } = new URL(request.url);
     const subject = searchParams.get("subject");
     const grade = searchParams.get("grade");
+    const id = searchParams.get("id");
+    if (id && !isUuid(id)) return NextResponse.json({ success: false, error: "Invalid lesson ID" }, { status: 400 });
 
     const query = db
       .select()
       .from(savedLessons)
+      .where(and(eq(savedLessons.userId, user.id), id ? eq(savedLessons.id, id) : undefined,
+        subject ? eq(savedLessons.subject, subject) : undefined,
+        grade ? eq(savedLessons.grade, grade) : undefined))
       .orderBy(desc(savedLessons.createdAt));
 
     const results = await query;
 
-    // Filter in JS since drizzle conditional where chains are verbose
-    const filtered = results.filter((lesson) => {
-      if (subject && lesson.subject !== subject) return false;
-      if (grade && lesson.grade !== grade) return false;
-      return true;
-    });
-
+    if (id && !results.length) return NextResponse.json({ success: false, error: "Lesson not found" }, { status: 404 });
     return NextResponse.json({
       success: true,
-      data: filtered,
-      count: filtered.length,
+      data: results,
+      count: results.length,
     });
   } catch (error) {
     console.error("Lessons GET error:", error);
@@ -41,7 +44,17 @@ export async function GET(request: NextRequest) {
 // POST - save a new lesson
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
+    const raw = await request.text();
+    if (raw.length > 1_000_000) return NextResponse.json({ success: false, error: "Lesson is too large" }, { status: 413 });
+    let body;
+    try { body = JSON.parse(raw); } catch {
+      return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 });
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ success: false, error: "Invalid lesson" }, { status: 400 });
+    }
 
     const {
       indicatorCode,
@@ -58,7 +71,12 @@ export async function POST(request: NextRequest) {
       lessonHeader,
     } = body;
 
-    // Validate all required fields
+    const textFields = { indicatorCode, subject, grade, strand, subStrand, curriculumSlug, levelCode, lessonPlan, teacherNotes, visualPrompts, studentReading };
+    if (Object.values(textFields).some((value) => value != null && (typeof value !== "string" || value.length > 200_000))
+      || (lessonHeader != null && (typeof lessonHeader !== "object" || Array.isArray(lessonHeader)))) {
+      return NextResponse.json({ success: false, error: "Invalid lesson fields" }, { status: 400 });
+    }
+
     const missingFields = [];
     if (!indicatorCode) missingFields.push("indicatorCode");
     if (!subject) missingFields.push("subject");
@@ -81,6 +99,7 @@ export async function POST(request: NextRequest) {
     const [saved] = await db
       .insert(savedLessons)
       .values({
+        userId: user.id,
         indicatorCode,
         subject,
         grade,
@@ -112,17 +131,21 @@ export async function POST(request: NextRequest) {
 // DELETE - remove a saved lesson by id
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await authorize(request);
+    if (user instanceof NextResponse) return user;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
-    if (!id) {
+    if (!id || !isUuid(id)) {
       return NextResponse.json(
         { success: false, error: "Lesson ID is required" },
         { status: 400 }
       );
     }
 
-    await db.delete(savedLessons).where(eq(savedLessons.id, id));
+    const [deleted] = await db.delete(savedLessons)
+      .where(and(eq(savedLessons.id, id), eq(savedLessons.userId, user.id))).returning({ id: savedLessons.id });
+    if (!deleted) return NextResponse.json({ success: false, error: "Lesson not found" }, { status: 404 });
 
     return NextResponse.json({ success: true, message: "Lesson deleted" });
   } catch (error) {

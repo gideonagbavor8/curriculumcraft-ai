@@ -195,6 +195,127 @@ npm run dev
 
 Visit `http://localhost:3000`
 
+### Teacher accounts and private resources
+
+Authentication uses the existing Neon PostgreSQL database and Drizzle ORM;
+no external authentication provider is required. The old beta access-code
+endpoint, cookie validation, access page, and feature-blocking overlay have
+been removed. Public product pages remain public. Teacher tools and their
+APIs require a valid account session.
+
+The header groups Scheme of Learning, Lesson Builder, Activity Suite, and
+Standard Map under **Teaching tools**. Signed-in teachers have a direct
+**My library** link; profile, classroom settings, and sign-out are grouped in
+**My account**. Phones and tablets use an accessible, scrollable side panel
+with the same destinations.
+
+### Teacher feedback
+
+The floating **Feedback** button opens a keyboard-accessible panel with five
+feedback categories and a message field. Public visitors and signed-in teachers
+use the same existing Google Form; no account details are automatically shared.
+**Send Feedback** opens that form with the category and message pre-filled.
+Teachers must complete the form's required questions and submit there; opening
+it is not a successful submission. The panel retains the draft across closing
+and reopening during the current visit.
+
+`NEXT_PUBLIC_FEEDBACK_FORM_URL` must be the full Google Forms `viewform` URL,
+not a shortened link. Question entry IDs are mapped in `lib/feedback.ts` to
+the current form's problems, improvements, new-feature, and experience questions.
+Update those mappings if the form's questions change. No new database, API,
+or feedback service is introduced. The button stays above the announcement
+bar using its measured height and is hidden on authentication pages.
+
+### Product announcements
+
+The global bottom announcement bar rotates through four messages every six
+seconds. All copy, the October 31 early-access date, the GH₵10/month price,
+and rotation interval live in `lib/announcements.ts`.
+CTA buttons open a product-direction dialog, not a payment flow or unfinished
+news/CPD system.
+
+Dots select an announcement manually. Rotation pauses on hover, keyboard
+focus, hidden browser tabs, and while the roadmap is open. Text and CTA labels
+crossfade over 600ms with a subtle vertical ease. Overlapping grid slides reserve
+space for the longest message, so rotation never changes the bar's height or
+CTA width. There are no close or pause/play controls; reduced-motion preferences
+disable automatic rotation and transitions. The banner is always visible on screen and cannot be
+dismissed by users. Previously saved dismissal preferences are ignored.
+
+The banner measures its rendered height to reserve matching bottom space,
+respect device safe areas, and lift the existing feedback button clear of it.
+It and its spacer are omitted from printed teaching resources.
+
+Apply the additive migration to an existing database before deploying:
+
+```bash
+npm run db:migrate
+```
+
+Migration `0011_teacher_accounts.sql` adds `teacher_accounts`,
+`teacher_sessions`, `auth_rate_limits`, and `saved_resources`, and adds
+indexed `user_id` foreign keys to `saved_lessons` and `scheme_uploads`.
+It does not delete, change, or assign ownership to existing records. Legacy
+ownerless lessons and schemes remain in the database but are excluded from
+account libraries. Do not use `db:push` instead of the migration on an existing
+deployment.
+
+Passwords are salted and hashed with scrypt. Random session tokens live in
+HttpOnly, SameSite=Lax cookies (Secure in production), expire after 30 days,
+and are stored only as SHA-256 hashes in the database. Logout revokes the
+server session. Authentication attempts are limited atomically in PostgreSQL.
+Mutation endpoints require a matching Origin header; private APIs derive
+ownership from the verified session, never from a client-supplied user ID.
+Ownership is enforced by SQL predicates in API queries, including scheme
+review, deletion, and week generation. Database credentials must remain
+server-only; the browser never connects directly to PostgreSQL.
+
+Required authentication environment variables:
+
+- `DATABASE_URL`: the existing Neon connection string.
+- `NEXT_PUBLIC_APP_URL`: the exact origin, such as `http://localhost:3000`
+  locally or the HTTPS production origin. Update it if using a different
+  local port. Cross-origin mutation requests are intentionally rejected.
+
+No new provider keys or session-signing secret are needed. Remove any obsolete
+`BETA_ACCESS_CODE` from deployment settings; the app no longer reads it.
+Existing AI environment variables are still needed for generation.
+
+To test locally:
+
+1. Start the app with `npm run dev`, then visit `/sign-up`.
+2. Create a teacher account with a name, email, and password of 12–128
+   characters. Registration signs you in immediately.
+3. Open each navigation tool, including Scheme of Learning. No access code
+   should be requested. Reload the page and confirm you remain signed in.
+4. Generate a lesson in Lesson Builder and save it. Generate activities or
+   scheme lessons and use their **Save to library** buttons. Open `/saved`
+   to view lesson plans, notes, reading materials, and assessment resources.
+5. Edit your name in `/account`. Email and join date are also shown.
+   Classroom location settings remain account-namespaced browser preferences,
+   not a cloud-synced profile setting.
+6. Sign out and verify protected pages redirect to sign-in and private APIs
+   return 401. Sign in again and confirm your library persists.
+7. Use a second account/private browser window. Confirm the first account's
+   resources and schemes are not listed and their direct API identifiers
+   return 404. Delete only resources belonging to the signed-in account.
+
+Automated verification:
+
+```bash
+npm test
+npm run build
+# Against a running LOCAL server; creates two clearly labelled test accounts.
+# Choose an absolute manifest path outside the repository.
+npx tsx scripts/auth-smoke-test.ts C:\Temp\curriculumcraft-auth-test.json
+```
+
+The smoke test intentionally retains its accounts/resources for review and
+writes their exact IDs to the supplied manifest. It does not auto-delete
+accounts. Review and explicitly approve test-record cleanup before deleting
+anything. Email verification, password recovery, and MFA are not included in
+this initial account release.
+
 See [Curriculum Architecture](./docs/curriculum-architecture.md) for the data model,
 import contract, exemplar CSV/JSON examples, API behavior, and production migration
 sequence.
