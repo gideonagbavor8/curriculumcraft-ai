@@ -35,7 +35,7 @@
     "katex": "^0.17.0",
     "lucide-react": "^1.17.0",
     "mammoth": "^1.12.3",
-    "next": "16.2.6",
+    "next": "^16.4.0",
     "node-html-parser": "^9.0.4",
     "openai": "^6.39.1",
     "pdfjs-dist": "^6.3.289",
